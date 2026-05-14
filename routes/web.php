@@ -10,7 +10,7 @@ use App\Http\Controllers\AdminUniversal\StatistikController;
 use App\Http\Controllers\AdminUniversal\ProfilController;
 
 use App\Http\Controllers\AdminBidang\BerandaController as BerandaBidang;
-use App\Http\Controllers\AdminBidang\LaporanController as LaporanBidang;
+use App\Http\Controllers\AdminBidang\LaporanController as LaporanBidangController;
 
 use App\Http\Controllers\Pekerja\TugasController as TugasPekerja;
 
@@ -89,24 +89,24 @@ Route::middleware(['auth'])->group(function () {
 
 
     // ==========================================
-    // RUTE ADMIN BIDANG (KEPALA UNIT)
+    // RUTE ADMIN BIDANG
     // ==========================================
     Route::prefix('admin-bidang')->name('admin_bidang.')->group(function () {
         Route::get('/beranda', [BerandaBidang::class, 'indeks'])->name('beranda');
 
-        Route::get('/laporan', [LaporanBidang::class, 'indeks'])->name('laporan');
-        Route::get('/laporan/detail/{id}', [LaporanBidang::class, 'detail'])->name('laporan.detail');
-        Route::post('/laporan/tugaskan/{id}', [LaporanBidang::class, 'tugaskan'])->name('laporan.tugaskan');
+        Route::get('/laporan', [LaporanBidangController::class, 'indeks'])->name('laporan');
+        Route::get('/laporan/detail/{id}', [LaporanBidangController::class, 'detail'])->name('laporan.detail');
+        Route::post('/laporan/tugaskan/{id}', [LaporanBidangController::class, 'tugaskan'])->name('laporan.tugaskan');
+
+        Route::get('/laporan/ekspor-excel', [LaporanBidangController::class, 'eksporExcel'])->name('laporan.ekspor_excel');
+        Route::get('/laporan/ekspor-pdf', [LaporanBidangController::class, 'eksporPdf'])->name('laporan.ekspor_pdf');
     });
 
 
     // ==========================================
     // RUTE PEKERJA LAPANGAN / UPTD
     // ==========================================
-    Route::prefix('pekerja')->name('pekerja.')->group(function () {
-        Route::get('/beranda', [TugasPekerja::class, 'indeks'])->name('beranda');
-        Route::post('/tugas/{id}/update', [TugasPekerja::class, 'updateProgres'])->name('tugas.update');
-    });
+
 
     //==============================================================================================================
     // Rute Uji Coba Notifikasi (Bisa dihapus nanti jika sisi Masyarakat sudah dibuat)

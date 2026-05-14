@@ -5,27 +5,53 @@ namespace App\Http\Controllers\AdminBidang;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-// use App\Models\LaporanKeluhan; // Nanti diaktifkan saat tabel laporan sudah siap
+use App\Models\LaporanKeluhan;
 
 class BerandaController extends Controller
 {
     public function indeks()
     {
-        // 1. Ambil data admin bidang yang sedang login
         $user = Auth::user();
 
-        // 2. Ambil data bidang yang terkait dengan admin tersebut
+        // 1. Ambil Data Bidang dari relasi User
         $bidang = $user->bidang;
+        $namaBidangAdmin = $bidang->nama_bidang ?? '';
 
-        // 3. Keamanan Ekstra: Cegah masuk jika admin belum punya bidang
-        if (!$bidang) {
-            abort(403, 'Akses Ditolak: Akun Anda belum memiliki bidang yang ditugaskan. Hubungi Admin Universal.');
-        }
+        // 2. Hitung Statistik (Hanya untuk bidang si Admin ini)
 
-        // Nanti statistik laporan khusus bidang ini ditaruh di sini
-        // Contoh: $laporan_masuk = LaporanKeluhan::where('id_bidang_tujuan', $user->id_bidang)->count();
+        // Total Laporan Masuk (Status: Diteruskan, Proses, Selesai)
+        $total_laporan = LaporanKeluhan::where('kategori_bidang', $namaBidangAdmin)
+                            ->whereIn('status', ['diteruskan', 'proses', 'selesai'])
+                            ->count();
 
-        // 4. Kirim data ke tampilan
-        return view('admin_bidang.beranda.indeks', compact('user', 'bidang'));
+        // Laporan Mendesak / Menunggu Validasi (Status: Diteruskan)
+        $laporan_mendesak = LaporanKeluhan::where('kategori_bidang', $namaBidangAdmin)
+                            ->where('status', 'diteruskan')
+                            ->count();
+
+        // Pekerjaan Berjalan (Status: Proses)
+        $laporan_proses = LaporanKeluhan::where('kategori_bidang', $namaBidangAdmin)
+                            ->where('status', 'proses')
+                            ->count();
+
+        // Pekerjaan Selesai (Status: Selesai)
+        $laporan_selesai = LaporanKeluhan::where('kategori_bidang', $namaBidangAdmin)
+                            ->where('status', 'selesai')
+                            ->count();
+
+        // 3. Ambil Data untuk Pemetaan (Peta Leaflet)
+        $sebaran_laporan = LaporanKeluhan::where('kategori_bidang', $namaBidangAdmin)
+                            ->whereIn('status', ['diteruskan', 'proses', 'selesai'])
+                            ->get(['id_laporan', 'lokasi_gps', 'status', 'kategori_bidang']);
+
+        // 4. Kirim semua data ke tampilan indeks.blade.php
+        return view('admin_bidang.beranda.indeks', compact(
+            'bidang',
+            'total_laporan',
+            'laporan_mendesak',
+            'laporan_proses',
+            'laporan_selesai',
+            'sebaran_laporan'
+        ));
     }
 }

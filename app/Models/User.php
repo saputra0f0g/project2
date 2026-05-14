@@ -28,9 +28,8 @@ class User extends Authenticatable
         ];
     }
 
-    // TAMBAHAN BARU: Relasi ke tabel bidang
     public function bidang()
     {
-        return $this->belongsTo(Bidang::class, 'id_bidang');
+        return $this->belongsTo(Bidang::class, 'id_bidang', 'id');
     }
 }
