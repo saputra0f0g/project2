@@ -178,9 +178,6 @@ class LaporanController extends Controller
         return response()->json(['message' => 'Laporan berhasil dihapus.']);
     }
 
-    /**
-     * Statistik laporan untuk dashboard.
-     */
     public function statistik(Request $request)
     {
         $user  = $request->user();
@@ -196,6 +193,72 @@ class LaporanController extends Controller
             'diproses'   => (clone $query)->whereIn('status', ['diteruskan', 'proses'])->count(),
             'selesai'    => (clone $query)->where('status', 'selesai')->count(),
             'ditolak'    => (clone $query)->where('status', 'ditolak')->count(),
+        ]);
+    }
+
+    /**
+     * Statistik laporan untuk dashboard Pegawai (dengan detail per bidang).
+     */
+    public function statistikPegawai(Request $request)
+    {
+        $user = $request->user();
+        if ($user->peran === 'masyarakat') {
+            return response()->json(['message' => 'Akses ditolak.'], 403);
+        }
+
+        $query = LaporanKeluhan::query();
+
+        return response()->json([
+            'total'      => (clone $query)->whereNotIn('status', ['selesai', 'ditolak'])->count(),
+            'menunggu'   => (clone $query)->where('status', 'pending')->count(),
+            'diproses'   => (clone $query)->whereIn('status', ['diteruskan', 'proses'])->count(),
+            'selesai'    => (clone $query)->where('status', 'selesai')->count(),
+            'ditolak'    => (clone $query)->where('status', 'ditolak')->count(),
+            'bidang'     => [
+                'bina_marga'  => (clone $query)->whereRaw('LOWER(kategori_bidang) LIKE ?', ['%bina marga%'])->whereNotIn('status', ['selesai', 'ditolak'])->count(),
+                'sda'         => (clone $query)->whereRaw('LOWER(kategori_bidang) LIKE ?', ['%air%'])->whereNotIn('status', ['selesai', 'ditolak'])->count(),
+                'cipta_karya' => (clone $query)->whereRaw('LOWER(kategori_bidang) LIKE ?', ['%cipta karya%'])->whereNotIn('status', ['selesai', 'ditolak'])->count(),
+            ]
+        ]);
+    }
+
+    /**
+     * Update status & foto progres — khusus pegawai.
+     */
+    public function updateProgresPegawai(Request $request, $id)
+    {
+        $user = $request->user();
+        if ($user->peran === 'masyarakat') {
+            return response()->json(['message' => 'Akses ditolak.'], 403);
+        }
+
+        $request->validate([
+            'status'  => 'required|in:pending,diteruskan,proses,selesai,ditolak,terkendala',
+            'catatan' => 'nullable|string',
+            'foto'    => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+        ]);
+
+        $laporan = LaporanKeluhan::findOrFail($id);
+        
+        $updateData = [
+            'status'            => $request->status,
+        ];
+        
+        if ($request->filled('catatan')) {
+            $updateData['alasan_penolakan'] = $request->catatan;
+        }
+
+        // Simpan foto progres ke kolom video_bukti (karena belum ada migrasi kolom foto_progres)
+        if ($request->hasFile('foto')) {
+            $fotoProgresPath = $request->file('foto')->store('laporan_progres', 'public');
+            $updateData['video_bukti'] = $fotoProgresPath;
+        }
+
+        $laporan->update($updateData);
+
+        return response()->json([
+            'message' => 'Progres laporan berhasil diperbarui.',
+            'laporan' => $this->formatLaporan($laporan),
         ]);
     }
 
@@ -216,6 +279,9 @@ class LaporanController extends Controller
             'alamat'        => $l->alamat_map,
             'foto_url'      => ($l->foto_bukti && $l->foto_bukti !== 'tidak ada')
                                ? asset('storage/' . $l->foto_bukti)
+                               : null,
+            'foto_progres_url' => ($l->video_bukti && $l->video_bukti !== 'tidak ada')
+                               ? asset('storage/' . $l->video_bukti)
                                : null,
             'status'        => $this->mapStatus($l->status),
             'status_raw'    => $l->status,

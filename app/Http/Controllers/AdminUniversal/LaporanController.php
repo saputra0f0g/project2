@@ -61,8 +61,9 @@ class LaporanController extends Controller
     {
         $laporan = LaporanKeluhan::with('pelapor', 'bidangTujuan')->findOrFail($id);
         $bidang_aktif = Bidang::where('status', 'aktif')->get(); // Untuk dropdown disposisi
+        $foto_bukti = explode (',', $laporan->foto_bukti);
 
-        return view('admin_universal.laporan.detail', compact('laporan', 'bidang_aktif'));
+        return view('admin_universal.laporan.detail', compact('laporan', 'bidang_aktif', 'foto_bukti'));
     }
 
     // Proses Meneruskan (Disposisi) Laporan ke Bidang

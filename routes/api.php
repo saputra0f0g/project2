@@ -53,12 +53,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Laporan
     Route::prefix('laporan')->group(function () {
+        Route::get('/statistik/pegawai', [LaporanController::class, 'statistikPegawai']); // HARUS sebelum /{id}
         Route::get('/statistik',     [LaporanController::class, 'statistik']);   // HARUS sebelum /{id}
         Route::get('/semua',         [LaporanController::class, 'indexSemua']); // Khusus pegawai
         Route::get('/',              [LaporanController::class, 'index']);       // Milik saya
         Route::post('/',             [LaporanController::class, 'store']);       // Buat baru
         Route::get('/{id}',          [LaporanController::class, 'show']);
-        Route::patch('/{id}/status', [LaporanController::class, 'updateStatus']); // Khusus pegawai
+        Route::patch('/{id}/status', [LaporanController::class, 'updateStatus']); // Khusus pegawai (tanpa foto)
+        Route::post('/{id}/progres-pegawai', [LaporanController::class, 'updateProgresPegawai']); // Khusus pegawai (dengan foto progres, POST for multipart)
         Route::delete('/{id}',       [LaporanController::class, 'destroy']);
     });
 
