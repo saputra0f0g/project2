@@ -185,6 +185,10 @@
                                 @endif
                             @endif
                         </td>
+<<<<<<< HEAD
+                        <!-- ========================================== -->
+=======
+>>>>>>> 89410d36ef719b97e4827090be94728ead78c6e2
                         <td class="px-6 py-5">
                             <div class="flex items-center space-x-3">
                                 <div class="w-8 h-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold shrink-0">
