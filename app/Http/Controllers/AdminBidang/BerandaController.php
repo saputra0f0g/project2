@@ -40,11 +40,23 @@ class BerandaController extends Controller
                             ->count();
 
         // 3. Ambil Data untuk Pemetaan (Peta Leaflet)
-        $sebaran_laporan = LaporanKeluhan::where('kategori_bidang', $namaBidangAdmin)
+        $sebaran_laporan = LaporanKeluhan::with('pelapor') // Pastikan 'pelapor' di-load
+                            ->where('kategori_bidang', $namaBidangAdmin)
                             ->whereIn('status', ['diteruskan', 'proses', 'selesai'])
-                            ->get(['id_laporan', 'lokasi_gps', 'status', 'kategori_bidang']);
+                            ->get(['id', 'id_laporan', 'lokasi_gps', 'status', 'kategori_bidang', 'deskripsi_laporan', 'id_pelapor']);
 
-        // 4. Kirim semua data ke tampilan indeks.blade.php
+        // 4. Ambil Data Tim Pekerja (Pekerja Bidang + UPTD) untuk ditampilkan di sidebar peta
+        $tim_pekerja = \App\Models\User::whereIn('peran', ['pekerja_bidang', 'pekerja_uptd', 'pekerja', 'pekerja_lapangan'])
+                        ->where('status_akun', 'aktif')
+                        ->take(6) // Ambil 6 pekerja saja agar kotak tidak terlalu panjang
+                        ->get();
+
+        // Pastikan variabel $tim_pekerja ikut dikirim di dalam compact
+        return view('admin_bidang.beranda.indeks', compact(
+            'bidang', 'total_laporan', 'laporan_mendesak', 'laporan_proses', 'laporan_selesai', 'sebaran_laporan', 'tim_pekerja'
+        ));
+
+        // 5. Kirim semua data ke tampilan indeks.blade.php
         return view('admin_bidang.beranda.indeks', compact(
             'bidang',
             'total_laporan',

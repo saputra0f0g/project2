@@ -7,89 +7,96 @@ use App\Http\Controllers\Controller;
 use App\Models\LaporanKeluhan;
 use App\Models\Bidang;
 use Illuminate\Http\Request;
-use App\Models\SistemLog;
+// KITA GUNAKAN LOGAKTIVITAS AGAR KONSISTEN DENGAN SISTEM PROFIL
+use App\Models\LogAktivitas;
 use Illuminate\Support\Facades\Auth;
 
 class LaporanController extends Controller
 {
     // Menampilkan daftar semua laporan (Dengan Fitur Filter)
-    public function indeks(\Illuminate\Http\Request $request)
+    public function indeks(Request $request)
     {
-        // 1. Mulai query dasar
-        $query = LaporanKeluhan::with('pelapor')->orderBy('created_at', 'desc');
+        // 1. Mulai query dasar (Pastikan panggil relasi pelapor agar popup peta jalan)
+        $query = LaporanKeluhan::with('pelapor');
 
-        // 2. Terapkan Filter jika ada request dari form pencarian
+        // 2. Terapkan Filter Status
         if ($request->filled('status') && $request->status != 'Semua Status') {
-            if ($request->status == 'proses') {
-                $query->whereIn('status', ['diteruskan', 'proses']);
-            } else {
-                $query->where('status', $request->status);
-            }
+            $query->where('status', $request->status);
         }
 
+        // 3. Terapkan Filter Bidang
         if ($request->filled('bidang') && $request->bidang != 'Semua Bidang') {
             $query->where('kategori_bidang', $request->bidang);
         }
 
+        // 4. Terapkan Filter Rentang Tanggal
         if ($request->filled('tanggal')) {
             $query->whereDate('created_at', $request->tanggal);
         }
 
-        // 3. Eksekusi query dengan Pagination (10 data per halaman)
-        $semua_laporan = $query->paginate(10);
+        // 5. Terapkan Sorting
+        if ($request->sort === 'terlama') {
+            $query->orderBy('created_at', 'asc');
+        } else {
+            // Default: Terbaru (desc)
+            $query->orderBy('created_at', 'desc');
+        }
 
-        // 4. Hitung statistik untuk kartu atas
+        // 6. Eksekusi query dengan Pagination (10 data per halaman)
+        $semua_laporan = $query->paginate(10)->withQueryString();
+
+        // 7. Hitung statistik untuk kartu atas
         $statistik = [
             'total' => LaporanKeluhan::count(),
-            'terbaru' => LaporanKeluhan::where('status', 'pending')->count(),
             'proses' => LaporanKeluhan::whereIn('status', ['diteruskan', 'proses'])->count(),
             'selesai' => LaporanKeluhan::where('status', 'selesai')->count(),
             'ditolak' => LaporanKeluhan::where('status', 'ditolak')->count(),
         ];
 
-        // 5. Data untuk Peta Bawah
-        $sebaran_laporan = LaporanKeluhan::whereNotNull('lokasi_gps')
-                                         ->select('id_laporan', 'lokasi_gps', 'status', 'kategori_bidang')
-                                         ->get();
+        // 8. Data untuk Peta Bawah
+        // Panggil relasi pelapor di sini juga agar popup peta memiliki nama pelapor!
+        $sebaran_laporan = LaporanKeluhan::with('pelapor')
+                            ->whereNotNull('lokasi_gps')
+                            ->select('id', 'id_laporan', 'lokasi_gps', 'status', 'kategori_bidang', 'deskripsi_laporan', 'id_pelapor')
+                            ->get();
 
-        // Ambil daftar bidang unik yang ada di database untuk menu dropdown
-        $daftar_bidang = LaporanKeluhan::select('kategori_bidang')->distinct()->pluck('kategori_bidang');
+        // Ambil daftar bidang aktif yang ada di database untuk menu dropdown filter
+        $daftar_bidang = Bidang::where('status', 'aktif')->pluck('nama_bidang');
 
-        // 2. MENGAMBIL DATA LOG (AKTIVITAS) UNTUK TAMPILAN:
-        // Ambil 5 aktivitas terbaru yang kategorinya 'laporan' untuk daftar di pinggir peta
-        $aktivitas_terbaru = SistemLog::where('kategori', 'laporan')->latest()->take(5)->get();
+        // 9. MENGAMBIL DATA LOG (AKTIVITAS) UNTUK TAMPILAN
+        // Menggunakan LogAktivitas
+        $aktivitas_terbaru = LogAktivitas::where('kategori', 'laporan')->latest()->take(5)->get();
+        $semua_aktivitas = LogAktivitas::where('kategori', 'laporan')->latest()->get();
 
-        // Ambil SEMUA aktivitas yang kategorinya 'laporan' untuk ditampilkan di dalam pop-up modal
-        $semua_aktivitas = SistemLog::where('kategori', 'laporan')->latest()->get();
-
-        // Kirim semua variabel ke tampilan (view) index.blade.php
         return view('admin_universal.laporan.index', compact(
             'statistik', 'semua_laporan', 'sebaran_laporan', 'daftar_bidang',
-            'aktivitas_terbaru', 'semua_aktivitas' // Pastikan 2 variabel ini masuk ke compact
+            'aktivitas_terbaru', 'semua_aktivitas'
         ));
-
     }
 
-    public function hapusSemuaLog()
+    public function hapusLog()
     {
-        // Perintah ke database: Cari semua data di tabel sistem_log yang kategorinya 'laporan', lalu HAPUS
-        SistemLog::where('kategori', 'laporan')->delete();
-
-        // Setelah berhasil dihapus, kembalikan user ke halaman sebelumnya dan kirimkan notifikasi sukses
+        LogAktivitas::where('kategori', 'laporan')->delete();
         return back()->with('sukses', 'Seluruh riwayat aktivitas laporan berhasil dikosongkan!');
     }
 
-    // Menampilkan detail spesifik satu laporan
+    public function hapusLogSatu($id)
+    {
+        $log = LogAktivitas::where('kategori', 'laporan')->findOrFail($id);
+        $log->delete();
+
+        return back()->with('sukses', 'Satu riwayat aktivitas berhasil dihapus.');
+    }
+
     public function detail($id)
     {
         $laporan = LaporanKeluhan::with('pelapor', 'bidangTujuan')->findOrFail($id);
-        $bidang_aktif = Bidang::where('status', 'aktif')->get(); // Untuk dropdown disposisi
+        $bidang_aktif = Bidang::where('status', 'aktif')->get();
         $foto_bukti = explode (',', $laporan->foto_bukti);
 
         return view('admin_universal.laporan.detail', compact('laporan', 'bidang_aktif', 'foto_bukti'));
     }
 
-    // Proses Meneruskan (Disposisi) Laporan ke Bidang
     public function disposisi(Request $request, $id)
     {
         $request->validate([
@@ -105,7 +112,6 @@ class LaporanController extends Controller
         return redirect()->route('admin_universal.laporan')->with('sukses', 'Laporan berhasil didisposisikan ke bidang terkait!');
     }
 
-    // Proses Menolak Laporan
     public function tolak(Request $request, $id)
     {
         $request->validate([
@@ -121,7 +127,6 @@ class LaporanController extends Controller
         return redirect()->route('admin_universal.laporan')->with('sukses', 'Laporan telah ditolak.');
     }
 
-    // Fungsi Ekspor ke Excel (Format CSV Murni Ber-kolom Rapi)
     public function ekspor()
     {
         $laporan = LaporanKeluhan::with('pelapor')->orderBy('created_at', 'desc')->get();
@@ -137,7 +142,7 @@ class LaporanController extends Controller
 
         $callback = function() use($laporan) {
             $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM agar rapi di Excel
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
             fputcsv($file, ['ID Laporan', 'Tanggal', 'Bidang', 'Lokasi', 'Pelapor', 'Status', 'Deskripsi'], ';');
 
             foreach ($laporan as $row) {
@@ -157,22 +162,15 @@ class LaporanController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
-    // Fungsi Ekspor ke PDF Profesional
     public function eksporPdf()
     {
         $laporan = LaporanKeluhan::with('pelapor')->orderBy('created_at', 'desc')->get();
-
-        // Kita akan memuat tampilan khusus PDF yang akan kita buat selanjutnya
         $pdf = Pdf::loadView('admin_universal.laporan.pdf', compact('laporan'));
-
-        // Mengatur ukuran kertas ke F4 / Legal dengan orientasi Landscape (Tidur) agar tabel muat
         $pdf->setPaper('legal', 'landscape');
-
         return $pdf->download('Laporan_Resmi_SIGAP_'.date('Y_m_d').'.pdf');
     }
 
-    // Fungsi untuk Menyimpan Laporan Baru dari Dasbor
-    public function simpan(\Illuminate\Http\Request $request)
+    public function simpan(Request $request)
     {
         $request->validate([
             'kategori_bidang' => 'required',
@@ -182,48 +180,37 @@ class LaporanController extends Controller
 
         LaporanKeluhan::create([
             'id_laporan' => 'REP-' . date('Ymd') . '-' . rand(100, 999),
-            'id_pelapor' => \Illuminate\Support\Facades\Auth::id(),
+            'id_pelapor' => Auth::id(),
             'kategori_bidang' => $request->kategori_bidang,
             'deskripsi_laporan' => $request->deskripsi_laporan,
             'alamat_map' => $request->alamat_map,
-            'lokasi_gps' => '-6.5627, 107.7613', // Titik default Subang
+            'lokasi_gps' => '-6.5627, 107.7613',
             'status' => 'pending'
         ]);
 
         return redirect()->route('admin_universal.laporan')->with('sukses', 'Laporan manual berhasil ditambahkan!');
     }
 
-    // Fungsi Cetak PDF Khusus 1 Laporan (A4 Portrait)
     public function cetakDetailPdf($id)
     {
         $laporan = LaporanKeluhan::with('pelapor')->findOrFail($id);
-
-        // Memuat desain PDF khusus detail
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin_universal.laporan.pdf_detail', compact('laporan'));
-
-        // Atur ukuran kertas A4, Posisi Berdiri (Portrait)
+        $pdf = Pdf::loadView('admin_universal.laporan.pdf_detail', compact('laporan'));
         $pdf->setPaper('A4', 'portrait');
-
-        // Menggunakan stream() agar PDF terbuka di tab baru (bisa diprint langsung), bukan otomatis terunduh
         return $pdf->stream('Detail_Laporan_'.$laporan->id_laporan.'.pdf');
     }
 
-    // Fungsi untuk mengubah status laporan dari halaman Detail
-    public function updateStatus(\Illuminate\Http\Request $request, $id)
+    public function updateStatus(Request $request, $id)
     {
         $laporan = LaporanKeluhan::findOrFail($id);
         $laporan->status = $request->status;
 
-        // Simpan data tambahan jika ada
         if ($request->status == 'ditolak' && $request->filled('alasan_penolakan')) {
-            // Pastikan kamu punya kolom 'alasan_penolakan' di database / tabel laporan
             $laporan->alasan_penolakan = $request->alasan_penolakan;
         }
 
         if ($request->status == 'diteruskan' && $request->filled('bidang_tujuan')) {
             $laporan->kategori_bidang = $request->bidang_tujuan;
 
-            // Tambahkan baris ini untuk menyimpan catatan jika ada (Pastikan kolom 'catatan_disposisi' ada di database)
             if ($request->filled('catatan_disposisi')) {
                 $laporan->catatan_disposisi = $request->catatan_disposisi;
             }
@@ -231,11 +218,9 @@ class LaporanController extends Controller
 
         $laporan->save();
 
-        // 1. Catat ke dalam Log Aktivitas
         $statusBaru = $request->status;
         $teksAktivitas = '';
 
-        // 2. Buat teks dinamis berdasarkan aksi yang dilakukan admin
         if ($statusBaru == 'diteruskan') {
             $teksAktivitas = 'Mendisposisikan laporan ' . $laporan->id_laporan . ' ke Bidang ' . $request->bidang_tujuan;
         } elseif ($statusBaru == 'ditolak') {
@@ -246,11 +231,11 @@ class LaporanController extends Controller
             $teksAktivitas = 'Mengubah status laporan ' . $laporan->id_laporan;
         }
 
-        // 3. Simpan ke database sistem_logs
-        SistemLog::create([
+        // Simpan menggunakan LogAktivitas
+        LogAktivitas::create([
             'aktivitas' => $teksAktivitas,
-            'kategori'  => 'laporan', // Harus 'laporan' agar muncul di halaman Kelola Laporan
-            'user_id'   => Auth::id() // Mencatat siapa admin yang melakukan aksi ini
+            'kategori'  => 'laporan',
+            'user_id'   => Auth::id()
         ]);
 
         return redirect()->back()->with('sukses', 'Status laporan berhasil diperbarui!');

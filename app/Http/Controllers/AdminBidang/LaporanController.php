@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\LaporanKeluhan;
 use App\Models\User;
 use App\Models\PenugasanPekerja;
-use App\Models\SistemLog; // WAJIB ADA UNTUK MENCATAT AKTIVITAS
+use App\Models\LogAktivitas;
 use Illuminate\Support\Facades\Auth;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -16,7 +16,7 @@ class LaporanController extends Controller
     /**
      * Tampil daftar laporan khusus bidang yang sedang login
      */
-    public function indeks()
+    public function indeks(Request $request)
     {
         $user = Auth::user();
         $namaBidangAdmin = $user->bidang->nama_bidang ?? '';
@@ -39,9 +39,32 @@ class LaporanController extends Controller
             ->get(['id', 'id_laporan', 'lokasi_gps', 'status', 'kategori_bidang']);
 
         // AMBIL DATA AKTIVITAS UNTUK DITAMPILKAN DI SIDEBAR PETA
-        $aktivitas_terbaru = SistemLog::where('kategori', 'laporan_bidang')->latest()->take(5)->get();
+        $aktivitas_terbaru = LogAktivitas::where('kategori', 'laporan_bidang')->latest()->take(5)->get();
         // AMBIL SEMUA DATA AKTIVITAS UNTUK DI POP-UP
-        $semua_aktivitas = SistemLog::where('kategori', 'laporan_bidang')->latest()->get();
+        $semua_aktivitas = LogAktivitas::where('kategori', 'laporan_bidang')->latest()->get();
+
+
+        //=================================================================================
+        // fungsi filter dan sorting
+        // 1. Buat Query Dasar
+        $query = \App\Models\LaporanKeluhan::where('kategori_bidang', $namaBidangAdmin);
+
+        // 2. Logika Filter Status
+        if ($request->filled('status') && $request->status !== 'semua') {
+            $query->where('status', $request->status);
+        }
+
+        // 3. Logika Sorting (Urutkan)
+        if ($request->sort === 'terlama') {
+            $query->orderBy('created_at', 'asc'); // Yang paling lama di atas
+        } else {
+            $query->orderBy('created_at', 'desc'); // Default: Yang terbaru di atas
+        }
+
+        // 4. Eksekusi dengan paginasi (tambahkan withQueryString agar filter tidak hilang saat ganti halaman)
+        $laporan_masuk = $query->paginate(10)->withQueryString();
+
+        //=================================================================================
 
         return view('admin_bidang.laporan.index', compact('laporan_masuk', 'statistik', 'sebaran_laporan', 'aktivitas_terbaru', 'semua_aktivitas'));
     }
@@ -70,7 +93,7 @@ class LaporanController extends Controller
      */
     public function hapusSemuaLog()
     {
-        SistemLog::where('kategori', 'laporan_bidang')->delete();
+        LogAktivitas::where('kategori', 'laporan_bidang')->delete();
         return back()->with('sukses', 'Seluruh riwayat aktivitas laporan bidang berhasil dikosongkan!');
     }
 
@@ -106,7 +129,7 @@ class LaporanController extends Controller
         ]);
 
         // CATAT AKTIVITAS KE SISTEM LOG
-        SistemLog::create([
+        LogAktivitas::create([
             'aktivitas' => "Menugaskan Tim " . ($pekerjaTarget->nama_lengkap ?? 'UPTD') . " untuk Laporan #" . $laporan->id_laporan,
             'kategori'  => 'laporan_bidang',
             'user_id'   => $user->id
@@ -135,7 +158,7 @@ class LaporanController extends Controller
         ]);
 
         // CATAT AKTIVITAS KE SISTEM LOG
-        SistemLog::create([
+        LogAktivitas::create([
             'aktivitas' => "Mengembalikan Laporan #" . $laporan->id_laporan . " ke Admin Universal.",
             'kategori'  => 'laporan_bidang',
             'user_id'   => $user->id
@@ -171,7 +194,7 @@ class LaporanController extends Controller
         ]);
 
         // CATAT AKTIVITAS KE SISTEM LOG
-        SistemLog::create([
+        LogAktivitas::create([
             'aktivitas' => "Membatalkan penugasan pekerja untuk Laporan #" . $laporan->id_laporan,
             'kategori'  => 'laporan_bidang',
             'user_id'   => $user->id

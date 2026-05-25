@@ -72,6 +72,11 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/laporan/disposisi/{id}', [LaporanUniversal::class, 'disposisi'])->name('laporan.disposisi');
         Route::post('/laporan/tolak/{id}', [LaporanUniversal::class, 'tolak'])->name('laporan.tolak');
 
+        // Pastikan rute hapus semua ini benar
+        Route::delete('/laporan/log/hapus', [App\Http\Controllers\AdminUniversal\LaporanController::class, 'hapusLog'])->name('laporan.log.hapus');
+        // Tambahkan rute hapus satuan ini
+        Route::delete('/laporan/log/{id}/hapus', [App\Http\Controllers\AdminUniversal\LaporanController::class, 'hapusLogSatu'])->name('laporan.log.hapus_satu');
+        
         // ==========================================
         // Profil Admin Universal
         // ==========================================

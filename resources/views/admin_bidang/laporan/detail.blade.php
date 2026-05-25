@@ -5,13 +5,31 @@
 <style>
     #mapDetail { border-radius: 0.75rem; z-index: 10; transition: all 0.3s ease; }
     .leaflet-popup-content-wrapper { border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+
+    /* Animasi Masuk */
+    @keyframes fadeUpMasuk {
+        0% { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
+    }
+    .animasi-masuk {
+        animation: fadeUpMasuk 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        opacity: 0;
+    }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+
+    /* Custom Scrollbar untuk Dropdown Select */
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 </style>
 @endpush
 
 @section('konten')
 <div class="max-w-7xl mx-auto pb-10">
 
-    <div class="mb-6">
+    <div class="mb-6 animasi-masuk">
         <div class="flex items-center text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
             <a href="{{ route('admin_bidang.beranda') }}" class="hover:text-pupr-blue transition">DASHBOARD</a>
             <span class="mx-2">/</span>
@@ -22,7 +40,7 @@
 
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div class="flex items-center space-x-3 md:space-x-4">
-                <a href="{{ route('admin_bidang.laporan') }}" class="w-10 h-10 bg-white border border-gray-200 text-gray-500 hover:text-pupr-blue hover:border-pupr-blue hover:bg-blue-50 rounded-xl flex items-center justify-center transition shadow-sm focus:outline-none" title="Kembali ke Daftar Laporan">
+                <a href="{{ route('admin_bidang.laporan') }}" class="w-10 h-10 bg-white border border-gray-200 text-gray-500 hover:text-pupr-blue hover:border-pupr-blue hover:bg-blue-50 rounded-xl flex items-center justify-center transition shadow-sm focus:outline-none transform hover:-translate-x-1" title="Kembali ke Daftar Laporan">
                     <i class="fas fa-arrow-left text-lg"></i>
                 </a>
 
@@ -34,15 +52,15 @@
 
             <div>
                 @if($laporan->status == 'diteruskan')
-                    <span class="bg-yellow-400 text-white text-xs font-extrabold px-4 py-2 rounded-full uppercase tracking-wider shadow-sm flex items-center">
+                    <span class="bg-yellow-400 text-white text-xs font-extrabold px-4 py-2 rounded-full uppercase tracking-wider shadow-sm flex items-center shadow-yellow-200">
                         <i class="fas fa-clock mr-2"></i> Menunggu Penugasan
                     </span>
                 @elseif($laporan->status == 'proses')
-                    <span class="bg-indigo-500 text-white text-xs font-extrabold px-4 py-2 rounded-full uppercase tracking-wider shadow-sm flex items-center">
-                        <i class="fas fa-tools mr-2"></i> Dalam Pengerjaan
+                    <span class="bg-indigo-500 text-white text-xs font-extrabold px-4 py-2 rounded-full uppercase tracking-wider shadow-sm flex items-center shadow-indigo-200">
+                        <i class="fas fa-tools mr-2 animate-pulse"></i> Dalam Pengerjaan
                     </span>
                 @else
-                    <span class="bg-green-500 text-white text-xs font-extrabold px-4 py-2 rounded-full uppercase tracking-wider shadow-sm flex items-center">
+                    <span class="bg-green-500 text-white text-xs font-extrabold px-4 py-2 rounded-full uppercase tracking-wider shadow-sm flex items-center shadow-green-200">
                         <i class="fas fa-check-circle mr-2"></i> Selesai
                     </span>
                 @endif
@@ -54,7 +72,7 @@
 
         <div class="lg:col-span-2 space-y-6">
 
-            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animasi-masuk delay-1">
                 <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-white relative">
                     <h3 class="font-bold text-gray-800 flex items-center text-sm">
                         <i class="fas fa-map-marker-alt text-red-500 mr-2 text-lg"></i> Lokasi Laporan
@@ -69,7 +87,7 @@
                             <button id="btn-layer-detail" onclick="toggleLayerMenuDetail()" class="hover:text-pupr-blue border border-gray-200 hover:bg-blue-50 rounded p-1.5 transition focus:outline-none" title="Ganti Tampilan Peta">
                                 <i class="fas fa-layer-group text-xs"></i>
                             </button>
-                            <div id="menu-layer-detail" class="hidden absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-xl border border-gray-100 z-[2000] p-2 origin-top-right">
+                            <div id="menu-layer-detail" class="hidden absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-xl border border-gray-100 z-[2000] p-2 origin-top-right transition-all">
                                 <button onclick="gantiLayerDetail('standar')" class="w-full text-left px-3 py-2 text-[11px] font-bold text-gray-600 hover:bg-blue-50 hover:text-pupr-blue rounded-lg transition">
                                     <i class="fas fa-map mr-2"></i> Peta Jalan
                                 </button>
@@ -82,24 +100,24 @@
                 </div>
 
                 <div class="relative w-full h-[350px] bg-gray-100 z-0" id="mapDetail">
-                    <div class="absolute top-4 right-4 bg-white/95 backdrop-blur rounded-lg p-3 shadow-lg border border-gray-200 z-[1000] flex items-center space-x-4">
+                    <div class="absolute top-4 right-4 bg-white/95 backdrop-blur rounded-lg p-3 shadow-lg border border-gray-200 z-[1000] flex items-center space-x-4 transition-transform hover:scale-105">
                         <div>
                             <p class="text-[9px] font-extrabold text-pupr-blue uppercase tracking-widest mb-0.5">Titik Koordinat</p>
                             <p class="text-sm font-mono font-bold text-gray-800" id="teks-koordinat">{{ $laporan->lokasi_gps ?? '-6.5627, 107.7613' }}</p>
                         </div>
-                        <button onclick="salinKoordinat()" class="w-9 h-9 rounded bg-gray-50 border border-gray-200 text-gray-500 hover:bg-blue-50 hover:text-pupr-blue hover:border-blue-200 flex items-center justify-center transition focus:outline-none" title="Salin Koordinat">
+                        <button onclick="salinKoordinat()" class="w-9 h-9 rounded bg-gray-50 border border-gray-200 text-gray-500 hover:bg-blue-50 hover:text-pupr-blue hover:border-blue-200 flex items-center justify-center transition focus:outline-none active:scale-95" title="Salin Koordinat">
                             <i class="far fa-copy" id="icon-salin"></i>
                         </button>
                     </div>
                 </div>
 
-                <div class="bg-blue-50/50 p-4 flex items-start border-t border-gray-100">
-                    <i class="fas fa-location-arrow text-blue-500 mt-1 mr-3"></i>
+                <div class="bg-blue-50/50 p-4 flex items-start border-t border-gray-100 transition hover:bg-blue-50">
+                    <i class="fas fa-location-arrow text-blue-500 mt-1 mr-3 animate-pulse"></i>
                     <p class="text-sm text-gray-700 font-medium">{{ $laporan->alamat_map }}</p>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animasi-masuk delay-2">
                 <div class="px-5 py-4 border-b border-gray-100 bg-white">
                     <h3 class="font-bold text-gray-800 flex items-center text-sm">
                         <i class="fas fa-images text-pupr-blue mr-2 text-lg"></i> Bukti Foto & Video Lapangan
@@ -142,12 +160,12 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animasi-masuk delay-2">
                 <h3 class="font-bold text-gray-800 flex items-center text-sm mb-5">
                     <i class="fas fa-align-left text-pupr-blue mr-2 text-lg"></i> Deskripsi & Informasi Pelapor
                 </h3>
 
-                <div class="border-l-4 border-yellow-400 bg-yellow-50 p-4 rounded-r-xl mb-5">
+                <div class="border-l-4 border-yellow-400 bg-yellow-50 p-4 rounded-r-xl mb-5 hover:bg-yellow-100/50 transition">
                     <p class="text-[10px] font-bold text-yellow-800 uppercase tracking-widest mb-1">Catatan Disposisi dari Pusat</p>
                     <p class="text-sm font-bold text-yellow-900">{{ $laporan->catatan_disposisi ?? 'Tidak ada instruksi khusus dari Admin Universal.' }}</p>
                 </div>
@@ -157,7 +175,7 @@
                     <p class="text-sm text-gray-700 leading-relaxed">{{ $laporan->deskripsi_laporan }}</p>
                 </div>
 
-                <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 hover:bg-gray-100/50 transition">
                     <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Nama Pelapor</p>
                     <p class="text-sm font-bold text-gray-800"><i class="fas fa-user-circle text-gray-400 mr-1"></i> {{ $laporan->pelapor->nama_lengkap ?? 'Anonim / Masyarakat Umum' }}</p>
                 </div>
@@ -165,10 +183,11 @@
 
         </div>
 
-        <div class="lg:col-span-1">
-            <div class="bg-[#1E3A8A] rounded-t-2xl p-5 text-white shadow-md">
-                <h3 class="text-sm font-bold flex items-center"><i class="fas fa-clipboard-check mr-2"></i> Formulir Disposisi UPTD</h3>
-                <p class="text-[10px] text-blue-200 mt-1 uppercase tracking-wider">Kirim tugas langsung ke Aplikasi Mobile</p>
+        <div class="lg:col-span-1 animasi-masuk delay-3">
+            <div class="bg-[#1E3A8A] rounded-t-2xl p-5 text-white shadow-md relative overflow-hidden">
+                <div class="absolute -right-4 -top-4 opacity-10"><i class="fas fa-file-signature text-8xl"></i></div>
+                <h3 class="text-sm font-bold flex items-center relative z-10"><i class="fas fa-clipboard-check mr-2"></i> Formulir Disposisi UPTD</h3>
+                <p class="text-[10px] text-blue-200 mt-1 uppercase tracking-wider relative z-10">Kirim tugas langsung ke Aplikasi Mobile</p>
             </div>
 
             <div class="bg-white border border-gray-100 border-t-0 rounded-b-2xl shadow-sm p-6">
@@ -176,16 +195,39 @@
                 <form id="form-disposisi" action="{{ route('admin_bidang.laporan.tugaskan', $laporan->id) }}" method="POST">
                     @csrf
 
-                    <div class="mb-5">
+                    <div class="mb-5 relative">
                         <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Pilih Tim Pelaksana / Pegawai UPTD <span class="text-red-500">*</span></label>
-                        <select id="id_pekerja" name="id_pekerja" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg focus:ring-pupr-blue focus:border-pupr-blue block p-3 appearance-none shadow-sm cursor-pointer outline-none font-semibold" required {{ $laporan->status != 'diteruskan' ? 'disabled' : '' }}>
+
+                        <select id="id_pekerja" name="id_pekerja" class="hidden" required {{ $laporan->status != 'diteruskan' ? 'disabled' : '' }}>
                             <option value="">-- Cari Tim Berdasarkan Wilayah... --</option>
                             @foreach($pekerja as $tim)
-                                <option value="{{ $tim->id }}" {{ $laporan->id_pekerja == $tim->id ? 'selected' : '' }}>
-                                    {{ $tim->nama_lengkap }} ({{ $tim->kantor_wilayah ?? 'Seluruh Wilayah Subang' }})
+                                <option value="{{ $tim->id }}"
+                                        data-nama="{{ $tim->nama_lengkap }}"
+                                        data-wilayah="{{ $tim->kantor_wilayah ?? 'Seluruh Wilayah Subang' }}"
+                                        {{ $laporan->id_pekerja == $tim->id ? 'selected' : '' }}>
+                                    {{ $tim->nama_lengkap }}
                                 </option>
                             @endforeach
                         </select>
+
+                        <div class="relative" id="custom-select-container">
+                            <div id="custom-select-button" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg p-3 shadow-sm flex justify-between items-center transition duration-200 {{ $laporan->status != 'diteruskan' ? 'opacity-60 cursor-not-allowed bg-gray-100' : 'cursor-pointer hover:border-pupr-blue hover:bg-white' }}">
+                                <span id="custom-select-text" class="font-semibold text-gray-500 truncate mr-2">-- Pilih Pekerja UPTD... --</span>
+                                <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform duration-300" id="custom-select-icon"></i>
+                            </div>
+
+                            <div id="custom-select-dropdown" class="hidden absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] overflow-hidden transform opacity-0 transition-opacity duration-200">
+                                <div class="p-2 bg-gray-50 border-b border-gray-100">
+                                    <div class="relative">
+                                        <i class="fas fa-search absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                                        <input type="text" id="custom-select-search" class="w-full bg-white border border-gray-200 text-xs rounded-lg pl-8 pr-3 py-2 focus:outline-none focus:border-pupr-blue focus:ring-1 focus:ring-pupr-blue transition shadow-sm" placeholder="Cari nama atau wilayah kerja...">
+                                    </div>
+                                </div>
+                                <ul id="custom-select-list" class="max-h-56 overflow-y-auto custom-scrollbar py-1">
+                                    </ul>
+                            </div>
+                        </div>
+
                         @if($pekerja->isEmpty())
                             <p class="text-[10px] text-red-500 font-bold mt-2"><i class="fas fa-exclamation-triangle"></i> Belum ada akun Pekerja UPTD yang aktif di sistem.</p>
                         @endif
@@ -196,19 +238,19 @@
                         <div class="grid grid-cols-3 gap-2">
                             <label class="cursor-pointer relative">
                                 <input type="radio" name="prioritas" value="Tinggi" class="peer sr-only" {{ ($laporan->prioritas ?? 'Tinggi') == 'Tinggi' ? 'checked' : '' }} {{ $laporan->status != 'diteruskan' ? 'disabled' : '' }}>
-                                <div class="text-center px-1 py-2.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-500 peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-600 transition">
+                                <div class="text-center px-1 py-2.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-500 peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-600 transition shadow-sm hover:bg-gray-50">
                                     <i class="fas fa-exclamation mr-1"></i> Tinggi
                                 </div>
                             </label>
                             <label class="cursor-pointer relative">
                                 <input type="radio" name="prioritas" value="Sedang" class="peer sr-only" {{ ($laporan->prioritas ?? '') == 'Sedang' ? 'checked' : '' }} {{ $laporan->status != 'diteruskan' ? 'disabled' : '' }}>
-                                <div class="text-center px-1 py-2.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-500 peer-checked:border-yellow-500 peer-checked:bg-yellow-50 peer-checked:text-yellow-600 transition">
+                                <div class="text-center px-1 py-2.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-500 peer-checked:border-yellow-500 peer-checked:bg-yellow-50 peer-checked:text-yellow-600 transition shadow-sm hover:bg-gray-50">
                                     <i class="fas fa-angle-up mr-1"></i> Sedang
                                 </div>
                             </label>
                             <label class="cursor-pointer relative">
                                 <input type="radio" name="prioritas" value="Rendah" class="peer sr-only" {{ ($laporan->prioritas ?? '') == 'Rendah' ? 'checked' : '' }} {{ $laporan->status != 'diteruskan' ? 'disabled' : '' }}>
-                                <div class="text-center px-1 py-2.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-500 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-600 transition">
+                                <div class="text-center px-1 py-2.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-500 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-600 transition shadow-sm hover:bg-gray-50">
                                     <i class="fas fa-angle-down mr-1"></i> Rendah
                                 </div>
                             </label>
@@ -217,7 +259,7 @@
 
                     <div class="mb-6">
                         <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Instruksi Tambahan</label>
-                        <textarea name="instruksi_tambahan" rows="4" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg focus:ring-pupr-blue focus:border-pupr-blue block p-3 outline-none shadow-sm resize-none text-xs font-medium" placeholder="Tulis rincian teknis pengerjaan lapangan..." {{ $laporan->status != 'diteruskan' ? 'readonly' : '' }}>{{ $laporan->instruksi_tambahan ?? '' }}</textarea>
+                        <textarea name="instruksi_tambahan" rows="4" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg focus:ring-pupr-blue focus:border-pupr-blue block p-3 outline-none shadow-sm resize-none text-xs font-medium transition hover:border-blue-200" placeholder="Tulis rincian teknis pengerjaan lapangan..." {{ $laporan->status != 'diteruskan' ? 'readonly' : '' }}>{{ $laporan->instruksi_tambahan ?? '' }}</textarea>
                     </div>
 
                     @if($laporan->status == 'diteruskan')
@@ -237,7 +279,7 @@
                         <form id="form-kembalikan-pusat" action="{{ route('admin_bidang.laporan.kembalikan', $laporan->id) ?? '#' }}" method="POST">
                             @csrf
                             <input type="hidden" name="alasan_pengembalian" id="alasan_pengembalian_pusat">
-                            <button type="button" onclick="konfirmasiKembalikanPusat()" class="w-full bg-[#313C59] hover:bg-[#1E293B] text-white font-bold text-sm py-3 rounded-lg transition flex justify-center items-center shadow-sm">
+                            <button type="button" onclick="konfirmasiKembalikanPusat()" class="w-full bg-[#313C59] hover:bg-[#1E293B] text-white font-bold text-sm py-3 rounded-lg transition transform hover:-translate-y-0.5 flex justify-center items-center shadow-sm">
                                 <i class="fas fa-reply mr-2"></i> Kembalikan ke Admin Universal
                             </button>
                         </form>
@@ -247,7 +289,7 @@
                         <form id="form-batalkan-tugas" action="{{ route('admin_bidang.laporan.batal_tugas', $laporan->id) ?? '#' }}" method="POST">
                             @csrf
                             <input type="hidden" name="alasan_pembatalan" id="alasan_pembatalan_tugas">
-                            <button type="button" onclick="konfirmasiBatalkanTugas()" class="w-full bg-red-50 text-red-600 border border-red-200 hover:bg-red-500 hover:text-white font-bold text-sm py-3 rounded-lg transition flex justify-center items-center shadow-sm">
+                            <button type="button" onclick="konfirmasiBatalkanTugas()" class="w-full bg-red-50 text-red-600 border border-red-200 hover:bg-red-500 hover:text-white font-bold text-sm py-3 rounded-lg transition transform hover:-translate-y-0.5 flex justify-center items-center shadow-sm">
                                 <i class="fas fa-times-circle mr-2"></i> Batalkan Penugasan Pekerja
                             </button>
                         </form>
@@ -276,12 +318,132 @@
 @push('js')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
 <script>
+    // --- SCRIPT CUSTOM SELECT DROPDOWN (UI PREMIUM) ---
+    document.addEventListener("DOMContentLoaded", function() {
+        const nativeSelect = document.getElementById('id_pekerja');
+        const customBtn = document.getElementById('custom-select-button');
+        const customText = document.getElementById('custom-select-text');
+        const customDropdown = document.getElementById('custom-select-dropdown');
+        const customList = document.getElementById('custom-select-list');
+        const customSearch = document.getElementById('custom-select-search');
+        const customIcon = document.getElementById('custom-select-icon');
+
+        let isSelectDisabled = nativeSelect.disabled;
+
+        function initCustomSelect() {
+            // Cek apakah ada data yang sudah terpilih (saat load halaman)
+            if(nativeSelect.value !== "") {
+                let selectedOpt = nativeSelect.options[nativeSelect.selectedIndex];
+                customText.innerHTML = `<span class="text-gray-800 font-bold">${selectedOpt.getAttribute('data-nama')}</span>`;
+                customBtn.classList.add('border-blue-300', 'bg-white');
+            }
+
+            populateList(''); // Muat seluruh daftar pekerja
+
+            if(isSelectDisabled) return; // Jika status laporan bukan "diteruskan", matikan fungsi klik
+
+            // Buka tutup dropdown saat tombol ditekan
+            customBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleDropdown();
+            });
+
+            // Filter data saat mengetik di kolom pencarian
+            customSearch.addEventListener('input', function(e) {
+                populateList(e.target.value.toLowerCase());
+            });
+
+            // Tutup dropdown jika area luar di klik
+            document.addEventListener('click', function(e) {
+                if(!customBtn.contains(e.target) && !customDropdown.contains(e.target)) {
+                    closeDropdown();
+                }
+            });
+        }
+
+        function toggleDropdown() {
+            if(customDropdown.classList.contains('hidden')) {
+                customDropdown.classList.remove('hidden');
+                setTimeout(() => {
+                    customDropdown.classList.remove('opacity-0');
+                    customIcon.classList.add('rotate-180');
+                    customSearch.focus();
+                }, 10);
+            } else {
+                closeDropdown();
+            }
+        }
+
+        function closeDropdown() {
+            customDropdown.classList.add('opacity-0');
+            customIcon.classList.remove('rotate-180');
+            setTimeout(() => { customDropdown.classList.add('hidden'); }, 200);
+        }
+
+        function populateList(filterText) {
+            customList.innerHTML = '';
+            let hasResult = false;
+
+            Array.from(nativeSelect.options).forEach((opt, index) => {
+                if(index === 0) return; // Lewati opsi placeholder pertama "-- Pilih Tim --"
+
+                let val = opt.value;
+                let nama = opt.getAttribute('data-nama');
+                let wilayah = opt.getAttribute('data-wilayah');
+
+                // Pencarian bisa dari Nama Pekerja ATAU Wilayah Kerjanya
+                if(nama.toLowerCase().includes(filterText) || wilayah.toLowerCase().includes(filterText)) {
+                    hasResult = true;
+                    let li = document.createElement('li');
+                    li.className = 'px-4 py-3 cursor-pointer transition border-b border-gray-50 last:border-0 relative flex flex-col group';
+
+                    // Style khusus jika item sedang terpilih
+                    if(nativeSelect.value === val) {
+                        li.classList.add('bg-blue-50');
+                    } else {
+                        li.classList.add('hover:bg-gray-50');
+                    }
+
+                    li.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-bold ${nativeSelect.value === val ? 'text-pupr-blue' : 'text-gray-800 group-hover:text-pupr-blue'}">${nama}</span>
+                            ${nativeSelect.value === val ? '<i class="fas fa-check text-pupr-blue text-xs"></i>' : ''}
+                        </div>
+                        <span class="text-[10px] text-gray-500 font-medium mt-1 flex items-center"><i class="fas fa-map-marker-alt text-gray-300 mr-1.5"></i> ${wilayah}</span>
+                    `;
+
+                    // Aksi ketika list diklik
+                    li.addEventListener('click', () => {
+                        nativeSelect.value = val; // Set data ke form asli
+                        customText.innerHTML = `<span class="text-gray-800 font-bold">${nama}</span>`;
+                        customBtn.classList.add('border-blue-300', 'bg-white');
+                        closeDropdown();
+                        customSearch.value = ''; // Reset form pencarian
+                        populateList(''); // Render ulang list untuk memindahkan tanda checklist
+                    });
+
+                    customList.appendChild(li);
+                }
+            });
+
+            if(!hasResult) {
+                customList.innerHTML = `
+                    <div class="py-6 text-center text-gray-400 flex flex-col items-center">
+                        <i class="fas fa-search-minus mb-2 text-lg"></i>
+                        <span class="text-xs font-medium">Tim tidak ditemukan</span>
+                    </div>`;
+            }
+        }
+
+        initCustomSelect();
+    });
+
     // 1. FUNGSI KONFIRMASI DISPOSISI TUGAS
     function konfirmasiDisposisi() {
         let selectPekerja = document.getElementById('id_pekerja');
         let nilaiPekerja = selectPekerja.value;
-        let namaPekerja = selectPekerja.options[selectPekerja.selectedIndex].text;
 
         if(nilaiPekerja === "") {
             Swal.fire({
@@ -291,12 +453,14 @@
             return false;
         }
 
+        let namaPekerja = selectPekerja.options[selectPekerja.selectedIndex].getAttribute('data-nama');
+
         Swal.fire({
             title: 'Kirim Penugasan?',
             html: `Anda akan menugaskan laporan ini kepada <br><b>${namaPekerja}</b>.`,
             icon: 'question', showCancelButton: true, confirmButtonColor: '#eab308', cancelButtonColor: '#9ca3af',
             confirmButtonText: 'Ya, Kirim Tugas!', cancelButtonText: 'Batal', reverseButtons: true,
-            customClass: { popup: 'rounded-2xl shadow-xl' }
+            customClass: { popup: 'rounded-2xl shadow-xl border border-gray-100' }
         }).then((result) => {
             if (result.isConfirmed) {
                 Swal.fire({ title: 'Memproses...', text: 'Sedang mengirim instruksi penugasan...', allowOutsideClick: false, showConfirmButton: false, didOpen: () => { Swal.showLoading(); }});
@@ -345,7 +509,7 @@
         });
     }
 
-    // SCRIPT PETA LEAFLET
+    // --- SCRIPT PETA LEAFLET ---
     let mapDetail, layerStandarDetail, layerSatelitDetail;
     document.addEventListener("DOMContentLoaded", function() {
         let koorString = "{{ $laporan->lokasi_gps ?? '-6.5627, 107.7613' }}";

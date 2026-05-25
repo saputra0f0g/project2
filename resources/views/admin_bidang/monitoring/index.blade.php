@@ -3,16 +3,30 @@
 @push('css')
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
-    /* Transisi untuk peta fullscreen */
+    /* Transisi Peta */
     #mapLokasi { transition: all 0.3s ease; }
     .leaflet-popup-content-wrapper { border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+
+    /* Animasi Masuk */
+    @keyframes fadeUpMasuk {
+        0% { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
+    }
+    .animasi-masuk {
+        animation: fadeUpMasuk 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        opacity: 0;
+    }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+    .delay-4 { animation-delay: 0.4s; }
 </style>
 @endpush
 
 @section('konten')
 <div class="max-w-7xl mx-auto pb-10">
 
-    <div class="flex justify-between items-center mb-8">
+    <div class="flex justify-between items-center mb-8 animasi-masuk">
         <div>
             <h2 class="text-2xl font-bold text-gray-900">Monitoring Kerja Real-time</h2>
             <p class="text-sm text-gray-500 font-medium mt-1">Pantau progres dan lokasi personil lapangan secara langsung.</p>
@@ -21,7 +35,7 @@
             <span class="bg-green-100 text-green-700 px-4 py-2 rounded-full text-xs font-bold flex items-center border border-green-200">
                 <span class="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span> {{ $laporan_berjalan->count() }} Petugas Aktif
             </span>
-            <a href="{{ route('admin_bidang.laporan') }}" class="bg-yellow-400 hover:bg-yellow-500 text-white px-5 py-2 rounded-lg text-sm font-bold shadow transition">
+            <a href="{{ route('admin_bidang.laporan') }}" class="bg-yellow-400 hover:bg-yellow-500 text-white px-5 py-2 rounded-lg text-sm font-bold shadow transition hover:shadow-md transform hover:-translate-y-0.5">
                 <i class="fas fa-plus mr-2"></i> Tugas Baru
             </a>
         </div>
@@ -31,9 +45,10 @@
 
         <div class="lg:col-span-2 space-y-6">
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 animasi-masuk delay-1">
                 @forelse($laporan_berjalan as $laporan)
-                <div class="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm relative"> <div class="flex justify-between items-start mb-3">
+                <div class="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm relative hover:border-blue-200 transition-colors">
+                    <div class="flex justify-between items-start mb-3">
                         <span class="text-[10px] font-extrabold text-pupr-yellow uppercase tracking-wider bg-yellow-50 px-2 py-1 rounded">{{ $laporan->kategori_bidang }}</span>
 
                         <div class="relative">
@@ -61,7 +76,7 @@
                                 @endif
                             </div>
                         </div>
-                        </div>
+                    </div>
 
                     <h3 class="font-bold text-gray-800 mb-4">{{ Str::limit($laporan->deskripsi_laporan, 30) }}</h3>
 
@@ -85,7 +100,7 @@
                         </div>
                     </div>
 
-                    <a href="{{ route('admin_bidang.laporan.detail', $laporan->id) }}" class="w-full text-center block bg-gray-50 border border-gray-200 text-gray-600 text-xs font-bold py-2 rounded-lg hover:bg-gray-100 transition">Lihat Detail Laporan</a>
+                    <a href="{{ route('admin_bidang.laporan.detail', $laporan->id) }}" class="w-full text-center block bg-gray-50 border border-gray-200 text-gray-600 text-xs font-bold py-2 rounded-lg hover:bg-blue-50 hover:text-pupr-blue hover:border-blue-100 transition">Lihat Detail Laporan</a>
                 </div>
                 @empty
                 <div class="col-span-2 bg-gray-50 border border-dashed border-gray-300 rounded-2xl p-8 text-center text-gray-500">
@@ -95,7 +110,7 @@
                 @endforelse
             </div>
 
-            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animasi-masuk delay-2">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="font-bold text-gray-800">Daftar Antrean Tugas</h3>
                     <button onclick="bukaModalAntrean()" class="text-sm font-bold text-pupr-blue hover:underline">Lihat Semua</button>
@@ -114,7 +129,7 @@
                         </thead>
                         <tbody class="text-sm" id="tabel-antrean-dashboard">
                             @foreach($antrean_tugas->take(4) as $antrean)
-                            <tr class="border-b border-gray-50 baris-antrean" data-id="{{ $antrean->id }}">
+                            <tr class="border-b border-gray-50 baris-antrean hover:bg-gray-50/50 transition group" data-id="{{ $antrean->id }}">
                                 <td class="py-4 px-2 font-semibold text-gray-800">{{ Str::limit($antrean->deskripsi_laporan, 25) }}</td>
                                 <td class="py-4 px-2 text-gray-600">
                                     <span class="flex items-center">
@@ -133,7 +148,7 @@
                                 </td>
                                 <td class="py-4 px-2 text-gray-500">{{ $antrean->updated_at->format('H:i') }} WIB</td>
                                 <td class="py-4 px-2 text-right">
-                                    <a href="{{ route('admin_bidang.laporan.detail', $antrean->id) }}" class="text-gray-400 hover:text-pupr-blue"><i class="fas fa-chevron-right"></i></a>
+                                    <a href="{{ route('admin_bidang.laporan.detail', $antrean->id) }}" class="text-gray-400 group-hover:text-pupr-blue transition"><i class="fas fa-chevron-right"></i></a>
                                 </td>
                             </tr>
                             @endforeach
@@ -145,7 +160,7 @@
 
         <div class="space-y-6">
 
-            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 animasi-masuk delay-2">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="font-bold text-gray-800 flex items-center"><i class="fas fa-map text-pupr-blue mr-2"></i> Lokasi Personil</h3>
                     <span class="text-[10px] text-gray-400 font-bold">Live Update</span>
@@ -157,7 +172,7 @@
                 </div>
             </div>
 
-            <div class="bg-[#2B354E] rounded-2xl shadow-sm p-6 text-white">
+            <div class="bg-[#2B354E] rounded-2xl shadow-sm p-6 text-white animasi-masuk delay-3">
                 <h3 class="font-bold text-sm mb-5 border-b border-gray-600 pb-3">Ringkasan Hari Ini</h3>
                 <div class="grid grid-cols-2 gap-4 mb-6">
                     <div class="bg-[#1E273D] p-4 rounded-xl border border-gray-600">
@@ -175,15 +190,15 @@
                         <span class="text-yellow-400">{{ $efisiensi }}%</span>
                     </div>
                     <div class="w-full bg-[#1E273D] rounded-full h-2">
-                        <div class="bg-yellow-400 h-2 rounded-full" style="width: {{ $efisiensi }}%"></div>
+                        <div class="bg-yellow-400 h-2 rounded-full transition-all duration-1000" style="width: {{ $efisiensi }}%"></div>
                     </div>
                 </div>
             </div>
 
             @if($peringatan->count() > 0)
-            <div class="bg-red-50 rounded-2xl border border-red-200 shadow-sm p-5">
+            <div class="bg-red-50 rounded-2xl border border-red-200 shadow-sm p-5 animasi-masuk delay-4">
                 <h3 class="font-bold text-red-800 flex items-center text-sm mb-4">
-                    <i class="fas fa-exclamation-circle mr-2 text-lg"></i> Peringatan ({{ $peringatan->count() }})
+                    <i class="fas fa-exclamation-circle mr-2 text-lg animate-bounce"></i> Peringatan ({{ $peringatan->count() }})
                 </h3>
                 <div class="space-y-3">
                     @foreach($peringatan as $alert)
@@ -202,7 +217,7 @@
 
 <div id="modal-antrean" class="fixed inset-0 z-[4000] hidden items-center justify-center">
     <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onclick="tutupModalAntrean()"></div>
-    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-4 max-h-[85vh] flex flex-col overflow-hidden">
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-4 max-h-[85vh] flex flex-col overflow-hidden animasi-masuk">
         <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
             <div>
                 <h3 class="font-bold text-gray-800 text-lg">Daftar Seluruh Antrean</h3>
@@ -213,19 +228,19 @@
 
         <div class="p-0 overflow-y-auto flex-1 bg-white">
             <table class="w-full text-left">
-                <thead class="bg-gray-50 text-[10px] text-gray-400 font-bold uppercase tracking-wider sticky top-0 border-b border-gray-200">
+                <thead class="bg-gray-50 text-[10px] text-gray-400 font-bold uppercase tracking-wider sticky top-0 border-b border-gray-200 z-10">
                     <tr>
                         <th class="py-3 px-6">ID & Laporan</th>
                         <th class="py-3 px-6">Petugas</th>
                         <th class="py-3 px-6">Waktu</th>
-                        <th class="py-3 px-6 text-center">Aksi (View)</th>
+                        <th class="py-3 px-6 text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="text-sm divide-y divide-gray-100" id="tabel-semua-antrean">
                     @foreach($antrean_tugas as $antrean)
-                    <tr class="hover:bg-gray-50 baris-antrean" data-id="{{ $antrean->id }}">
+                    <tr class="hover:bg-gray-50 baris-antrean transition" data-id="{{ $antrean->id }}">
                         <td class="py-3 px-6">
-                            <p class="font-bold text-pupr-blue">#{{ $antrean->id_laporan }}</p>
+                            <p class="font-bold text-pupr-blue hover:underline cursor-pointer" onclick="window.location.href='{{ route('admin_bidang.laporan.detail', $antrean->id) }}'">#{{ $antrean->id_laporan }}</p>
                             <p class="text-xs text-gray-600">{{ Str::limit($antrean->deskripsi_laporan, 30) }}</p>
                         </td>
                         <td class="py-3 px-6 font-semibold text-gray-700">{{ $antrean->pekerja->nama_lengkap ?? 'Menunggu...' }}</td>
@@ -242,8 +257,8 @@
         </div>
 
         <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
-            <button onclick="bersihkanSemuaAntrean()" class="text-xs font-bold text-red-500 hover:underline">
-                <i class="fas fa-trash-alt mr-1"></i> Bersihkan Semua Antrean
+            <button onclick="bersihkanSemuaAntrean()" class="text-xs font-bold text-red-500 hover:underline flex items-center">
+                <i class="fas fa-trash-alt mr-1"></i> Bersihkan Antrean
             </button>
             <button onclick="tutupModalAntrean()" class="px-5 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-lg text-sm font-bold transition">Tutup</button>
         </div>
@@ -258,45 +273,32 @@
     function toggleOpsiCard(id) {
         let menuId = 'menu-opsi-' + id;
         let elemenMenu = document.getElementById(menuId);
-
-        // Tutup menu lain yang sedang terbuka
         document.querySelectorAll('[id^="menu-opsi-"]').forEach(el => {
-            if(el.id !== menuId) {
-                el.classList.add('hidden');
-            }
+            if(el.id !== menuId) el.classList.add('hidden');
         });
-
-        // Toggle menu yang diklik
         elemenMenu.classList.toggle('hidden');
     }
 
-    // Klik di luar untuk menutup semua menu opsi
     document.addEventListener('click', function(event) {
         if(!event.target.closest('[id^="btn-opsi-"]') && !event.target.closest('[id^="menu-opsi-"]')) {
             document.querySelectorAll('[id^="menu-opsi-"]').forEach(el => el.classList.add('hidden'));
         }
     });
 
-    // --- LOGIKA LOCAL STORAGE UNTUK SEMBUNYIKAN ANTREAN ---
-    document.addEventListener("DOMContentLoaded", function() {
-        jalankanFilterAntrean();
-    });
+    // --- LOGIKA LOCAL STORAGE ANTREAN ---
+    document.addEventListener("DOMContentLoaded", function() { jalankanFilterAntrean(); });
 
     function jalankanFilterAntrean() {
         let hiddenIDs = JSON.parse(localStorage.getItem('hidden_antrean')) || [];
-        let barisAntrean = document.querySelectorAll('.baris-antrean');
-
-        barisAntrean.forEach(row => {
+        document.querySelectorAll('.baris-antrean').forEach(row => {
             let id = parseInt(row.getAttribute('data-id'));
-            if(hiddenIDs.includes(id)) {
-                row.style.display = 'none';
-            }
+            if(hiddenIDs.includes(id)) row.style.display = 'none';
         });
     }
 
     function sembunyikanAntrean(id) {
         let hiddenIDs = JSON.parse(localStorage.getItem('hidden_antrean')) || [];
-        if(!hiddenIDs.includes(id)) { hiddenIDs.push(id); }
+        if(!hiddenIDs.includes(id)) hiddenIDs.push(id);
         localStorage.setItem('hidden_antrean', JSON.stringify(hiddenIDs));
         jalankanFilterAntrean();
     }
@@ -323,7 +325,7 @@
     // --- LEAFLET PETA PERSONIL ---
     let mapLokasi;
     let dataPekerja = @json($laporan_berjalan);
-    let markerCollection = {}; // Objek untuk menyimpan semua marker
+    let markerCollection = {};
 
     document.addEventListener("DOMContentLoaded", function() {
         mapLokasi = L.map('mapLokasi').setView([-6.5627, 107.7613], 12);
@@ -331,7 +333,7 @@
 
         let iconPetugas = L.divIcon({
             className: 'bg-transparent',
-            html: `<div class="relative w-8 h-8">
+            html: `<div class="relative w-8 h-8 transition-transform hover:scale-110">
                      <i class="fas fa-map-marker text-blue-600 text-4xl drop-shadow-md"></i>
                      <div class="absolute top-[6px] left-[9px] w-3 h-3 bg-white rounded-full"></div>
                    </div>`,
@@ -352,12 +354,11 @@
                             <div class="text-center p-1 w-48">
                                 <div class="w-10 h-10 mx-auto rounded-full bg-blue-100 text-pupr-blue font-bold flex items-center justify-center mb-2">${namaPekerja.substring(0,1)}</div>
                                 <p class="text-xs font-bold text-gray-800 mb-1">${namaPekerja}</p>
-                                <p class="text-[10px] text-gray-500 bg-gray-50 rounded py-1 px-2 mb-2">ID: #${lap.id_laporan}</p>
-                                <a href="/admin-bidang/laporan/detail/${lap.id}" class="text-[10px] bg-pupr-blue text-white py-1 px-3 rounded-full font-bold block hover:bg-blue-800 transition">Lihat Tugas</a>
+                                <p class="text-[10px] text-gray-500 bg-gray-50 rounded py-1 px-2 mb-2 border border-gray-100">ID: #${lap.id_laporan}</p>
+                                <a href="/admin-bidang/laporan/detail/${lap.id}" class="text-[10px] bg-pupr-blue text-white py-1.5 px-3 rounded-lg font-bold block hover:bg-blue-800 transition shadow-sm">Lihat Tugas</a>
                             </div>
                         `);
 
-                        // Simpan marker ke dalam collection berdasarkan ID laporan
                         markerCollection[lap.id_laporan] = marker;
                     }
                 }
@@ -365,38 +366,26 @@
         }
     });
 
-    // Fungsi Fokus Peta saat opsi "Sorot di Peta" di klik
     function fokusKePeta(koordinat, idLaporan) {
         let koor = koordinat.split(',');
         if(koor.length === 2) {
             let lat = parseFloat(koor[0]);
             let lng = parseFloat(koor[1]);
 
-            // Animasi terbang ke lokasi
-            mapLokasi.flyTo([lat, lng], 16, {
-                duration: 1.5
-            });
+            mapLokasi.flyTo([lat, lng], 16, { duration: 1.5 });
 
-            // Setelah animasi selesai, buka popup marker-nya
             setTimeout(() => {
-                if(markerCollection[idLaporan]) {
-                    markerCollection[idLaporan].openPopup();
-                }
+                if(markerCollection[idLaporan]) markerCollection[idLaporan].openPopup();
             }, 1500);
 
-            // Tutup otomatis semua dropdown menu opsi
             document.querySelectorAll('[id^="menu-opsi-"]').forEach(el => el.classList.add('hidden'));
         }
     }
 
-    // Peta Fullscreen
     function toggleFullscreenMap() {
         let el = document.getElementById('mapLokasi');
-        if (!document.fullscreenElement) {
-            el.requestFullscreen().catch(err => { alert(`Error: ${err.message}`); });
-        } else {
-            document.exitFullscreen();
-        }
+        if (!document.fullscreenElement) el.requestFullscreen().catch(err => { alert(`Error: ${err.message}`); });
+        else document.exitFullscreen();
     }
 
     document.addEventListener('fullscreenchange', (e) => {
