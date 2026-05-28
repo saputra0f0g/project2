@@ -1,10 +1,13 @@
 @extends('layouts.app')
 
+@push('css')
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-
 <style>
-    .leaflet-popup-content-wrapper { border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-    .leaflet-popup-content { margin: 12px; }
+    /* Kustomisasi Popup Leaflet agar Modern */
+    .leaflet-popup-content-wrapper { border-radius: 12px; box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.15); border: 1px solid #e2e8f0; padding: 0; overflow: hidden;}
+    .leaflet-popup-content { margin: 0; width: 280px !important; }
+    .leaflet-container a.leaflet-popup-close-button { color: #94a3b8; top: 8px; right: 8px; font-size: 16px;}
+    .leaflet-container a.leaflet-popup-close-button:hover { color: #ef4444; }
 
     /* --- TAMBAHAN ANIMASI HALUS --- */
     @keyframes fadeInUpElement {
@@ -22,6 +25,7 @@
     .jeda-4 { animation-delay: 0.4s; }
     .jeda-5 { animation-delay: 0.5s; }
 </style>
+@endpush
 
 @section('konten')
 <div class="mb-8">
@@ -149,7 +153,7 @@
                     <p class="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider border-b pb-2">Filter Data Laporan</p>
                     <label class="flex items-center space-x-3 mb-2 cursor-pointer hover:bg-gray-50 p-1 rounded transition">
                         <input type="checkbox" value="pending" class="filter-cb form-checkbox h-4 w-4 text-red-500" checked onchange="renderMarkers()">
-                        <span class="text-sm font-medium text-gray-700">Menunggu Validasi</span>
+                        <span class="text-sm font-medium text-gray-700">Mendesak / Pending</span>
                     </label>
                     <label class="flex items-center space-x-3 mb-2 cursor-pointer hover:bg-gray-50 p-1 rounded transition">
                         <input type="checkbox" value="proses" class="filter-cb form-checkbox h-4 w-4 text-yellow-500" checked onchange="renderMarkers()">
@@ -157,7 +161,7 @@
                     </label>
                     <label class="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 p-1 rounded transition">
                         <input type="checkbox" value="selesai" class="filter-cb form-checkbox h-4 w-4 text-green-500" checked onchange="renderMarkers()">
-                        <span class="text-sm font-medium text-gray-700">Selesai</span>
+                        <span class="text-sm font-medium text-gray-700">Stabil / Selesai</span>
                     </label>
                 </div>
             </div>
@@ -168,7 +172,7 @@
         </div>
     </div>
 
-    <div id="map-wrapper" class="relative w-full h-[400px] rounded-xl overflow-hidden border border-gray-200 z-0 transition-all duration-300">
+    <div id="map-wrapper" class="relative w-full rounded-xl overflow-hidden border border-gray-200 z-0 transition-all duration-300" style="height:400px; min-height:400px;">
         <div id="map" class="w-full h-full bg-gray-100"></div>
 
         <div class="absolute top-4 left-4 bg-white/95 backdrop-blur rounded-xl p-4 shadow-lg border border-white/50 z-[1000]">
@@ -187,83 +191,190 @@
         </div>
     </div>
 </div>
+@endsection
 
+@push('js')
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
     let map, layerStandar, layerSatelit, markerGroup;
     let dataLaporan = @json($sebaran_laporan ?? []);
 
-    document.addEventListener("DOMContentLoaded", function() {
+    function initMap() {
+        if (!document.getElementById('map')) return;
+        if (map) return;
+
+        console.log('[SIGAP-beranda] init map start');
         map = L.map('map').setView([-6.5627, 107.7613], 12);
 
-        layerStandar = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 20 });
+        layerStandar = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' });
         layerSatelit = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
 
         layerStandar.addTo(map);
         markerGroup = L.layerGroup().addTo(map);
         renderMarkers();
-    });
+
+        setTimeout(() => { map.invalidateSize(); }, 250);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initMap);
+    } else {
+        initMap();
+    }
+
+    // Utility: escape HTML to avoid XSS in popups
+    function escapeHtml(text) {
+        if (text === null || text === undefined) return '';
+        const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+        return String(text).replace(/[&<>"']/g, function(m) { return entities[m]; });
+    }
+
+    // Utility: toggle description inside a popup (short <-> full)
+    function toggleDeskripsi(btn) {
+        const parent = btn.closest('.leaflet-popup-content') || btn.parentElement;
+        if (!parent) return;
+        const shortEl = parent.querySelector('.deskripsi-short');
+        const fullEl = parent.querySelector('.deskripsi-full');
+        if (!shortEl || !fullEl) return;
+
+        if (fullEl.classList.contains('hidden')) {
+            shortEl.classList.add('hidden');
+            fullEl.classList.remove('hidden');
+            btn.innerText = 'Sembunyikan';
+            btn.className = 'text-gray-400 hover:text-gray-600 font-bold ml-1 transition hover:bg-gray-200 p-0.5 rounded mt-1 block';
+        } else {
+            fullEl.classList.add('hidden');
+            shortEl.classList.remove('hidden');
+            btn.innerText = 'selengkapnya';
+            btn.className = 'text-blue-500 hover:text-blue-700 font-bold ml-1 transition';
+        }
+    }
+    // Jadikan fungsi global agar bisa dipanggil dari popup Leaflet
+    window.toggleDeskripsi = toggleDeskripsi;
 
     function renderMarkers() {
+        if(!markerGroup) return;
         markerGroup.clearLayers();
         let filterAktif = Array.from(document.querySelectorAll('.filter-cb:checked')).map(cb => cb.value);
 
-        if(dataLaporan.length > 0) {
+        console.log('[SIGAP-beranda] markers data length:', Array.isArray(dataLaporan) ? dataLaporan.length : 0);
+        let added = 0;
+
+        if(Array.isArray(dataLaporan) && dataLaporan.length > 0) {
             dataLaporan.forEach(function(laporan) {
-                if(filterAktif.includes(laporan.status) && laporan.lokasi_gps) {
+                // Konversi filter proses agar menangkap status diteruskan juga
+                let statusFilter = laporan.status;
+                if(laporan.status === 'diteruskan') {
+                    statusFilter = 'proses';
+                }
+
+                if(filterAktif.includes(statusFilter) && laporan.lokasi_gps) {
                     let koordinat = laporan.lokasi_gps.split(',');
                     if(koordinat.length == 2) {
                         let lat = parseFloat(koordinat[0].trim());
                         let lng = parseFloat(koordinat[1].trim());
 
-                        // 1. Logika Warna Teks Ikon FontAwesome
+                        // 1. Logika Warna Ikon & Badge Status
                         let warnaIkon = 'text-red-500';
-                        if(laporan.status === 'proses') warnaIkon = 'text-yellow-500';
-                        if(laporan.status === 'selesai') warnaIkon = 'text-green-500';
+                        let warnaBadge = 'bg-red-50 text-red-700';
+                        let teksStatus = 'VALIDASI';
+
+                        if(laporan.status === 'pending' || laporan.status === 'ditolak') {
+                            warnaIkon = 'text-red-500';
+                            warnaBadge = 'bg-red-50 text-red-700';
+                            teksStatus = laporan.status === 'ditolak' ? 'DITOLAK' : 'VALIDASI';
+                        }
+                        else if(laporan.status === 'proses' || laporan.status === 'diteruskan') {
+                            warnaIkon = 'text-yellow-500';
+                            warnaBadge = 'bg-yellow-50 text-yellow-700';
+                            teksStatus = 'DALAM PENGERJAAN';
+                        }
+                        else if(laporan.status === 'selesai') {
+                            warnaIkon = 'text-green-500';
+                            warnaBadge = 'bg-green-50 text-green-700';
+                            teksStatus = 'SELESAI';
+                        }
 
                         // 2. Pembuatan Ikon Pin Map
-                        let ikonCustom = L.divIcon({
-                            className: 'bg-transparent',
-                            html: `<div style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);" class="${warnaIkon} text-[35px] hover:scale-110 transition-transform cursor-pointer">
-                                     <i class="fas fa-map-marker-alt"></i>
-                                   </div>`,
-                            iconSize: [30, 42],
-                            iconAnchor: [15, 40], // Anchor di ujung bawah ikon
-                            popupAnchor: [0, -35] // Popup muncul di atas ikon
-                        });
+                                                let ikonCustom = L.divIcon({
+                                                        className: 'bg-transparent',
+                                                        html: `<div style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5); font-size:28px; line-height:1; display:inline-block;" class="${warnaIkon} hover:scale-110 transition-transform cursor-pointer drop-shadow">
+                                                                         <i class="fas fa-map-marker-alt"></i>
+                                                                     </div>`,
+                                                        iconSize: [30, 42],
+                                                        iconAnchor: [15, 40],
+                                                        popupAnchor: [0, -35]
+                                                });
 
-                        // 3. Tautan URL Google Maps & Street View
-                        // URL untuk membuka langsung mode Street View (Panorama)
-                        let urlStreetView = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=$${lat},${lng}`;
-                        // URL standar untuk membuka pin Google Maps biasa
-                        let urlMaps = `https://www.google.com/maps/search/?api=1&query=$${lat},${lng}`;
+                        // 3. Siapkan URL Google Maps dan tautan detail yang BENAR
+                        let urlMaps = `https://www.google.com/maps?q=${lat},${lng}`;
+                        // MENGGUNAKAN ID YANG ASLI DARI DATABASE UNTUK DETAIL LAPORAN
+                        let urlDetail = `/admin-universal/laporan/detail/${laporan.id}`;
 
-                        // 4. Bind Popup dengan Tombol Aksi
+                        // 4. Nama Pelapor dan Foto Profil
+                        let namaPelapor = (laporan.pelapor && laporan.pelapor.nama_lengkap) ? escapeHtml(laporan.pelapor.nama_lengkap) : 'Masyarakat Subang';
+                        let fotoSrc = (laporan.pelapor && laporan.pelapor.foto_profil) ? ('/storage/' + laporan.pelapor.foto_profil) : null;
+
+                        let imgHtml = fotoSrc
+                            ? `<img src="${fotoSrc}" alt="Profil" class="w-10 h-10 rounded-full object-cover border border-gray-200 shrink-0">`
+                            : `<div class="w-10 h-10 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-xs font-bold border border-gray-200 uppercase shrink-0">${namaPelapor.substring(0, 1)}</div>`;
+
+                        // 5. Kategori Bidang
+                        let kategori = (laporan.status === 'pending' || !laporan.kategori_bidang) ? 'Menunggu Disposisi' : escapeHtml(laporan.kategori_bidang);
+
+                        // 6. Deskripsi singkat + tombol selengkapnya
+                        let deskripsiAsli = laporan.deskripsi_laporan || 'Laporan infrastruktur dari masyarakat.';
+                        let teksAman = escapeHtml(deskripsiAsli);
+                        let batasKarakter = 70;
+                        let teksSingkatAman = teksAman.length > batasKarakter ? escapeHtml(deskripsiAsli.substring(0, batasKarakter)) + '...' : teksAman;
+                        let btnSelengkapnya = teksAman.length > batasKarakter ? `<button type="button" onclick="event.stopPropagation(); window.toggleDeskripsi(this)" class="text-blue-500 hover:text-blue-700 font-bold ml-1 transition">selengkapnya</button>` : '';
+
+                        // 7. Bind Popup
                         let marker = L.marker([lat, lng], {icon: ikonCustom});
                         marker.bindPopup(`
-                            <div class="p-2 w-56 text-center">
-                                <p class="text-xs font-bold text-gray-500 mb-1">ID: ${laporan.id_laporan}</p>
-                                <p class="font-extrabold text-gray-800 text-sm mb-2 leading-tight">${laporan.kategori_bidang}</p>
-                                <span class="bg-gray-100 text-gray-700 px-3 py-1 text-[10px] rounded-full font-bold mb-4 inline-block">STATUS: ${laporan.status.toUpperCase()}</span>
+                            <div class="flex flex-col items-center">
+                                <div class="px-4 pt-4 pb-2 text-center w-full">
+                                    <p class="text-[10px] font-bold text-gray-400 mb-0.5 tracking-wider">ID: #${escapeHtml(laporan.id_laporan)}</p>
+                                    <h3 class="font-extrabold text-gray-950 text-base leading-tight uppercase mb-1.5">${kategori}</h3>
 
-                                <div class="space-y-2">
-                                    <a href="${urlStreetView}" target="_blank" class="w-full bg-blue-600 hover:bg-blue-700 !text-white text-xs font-bold py-2.5 px-3 rounded-lg flex items-center justify-center transition shadow-md" style="color: white !important;">
-                                        <i class="fas fa-street-view mr-2 text-sm"></i> Lihat Sekitar (Street View)
+                                    <div class="${warnaBadge} px-3 py-1 text-[9px] rounded-full font-extrabold my-2 uppercase tracking-widest border border-gray-100 inline-block shadow-inner">
+                                        STATUS: ${teksStatus}
+                                    </div>
+                                </div>
+
+                                <div class="w-full text-left bg-gray-50/50 p-3.5 border-y border-gray-100 hover:bg-gray-50 transition duration-300">
+                                    <div class="flex items-start space-x-3 mb-1">
+                                        ${imgHtml}
+                                        <div class="flex-1 text-[11px] font-medium leading-relaxed break-words relative w-full text-left">
+                                            <div class="text-gray-800 font-bold mb-0.5">${namaPelapor}</div>
+                                            <span class="deskripsi-short text-gray-600">${teksSingkatAman}</span>
+                                            <span class="deskripsi-full hidden text-gray-600">${teksAman}</span>
+                                            ${btnSelengkapnya}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="w-full p-3.5 space-y-2 bg-white">
+                                    <a href="${urlDetail}" class="w-full bg-[#1E3A8A] hover:bg-blue-800 text-white text-xs font-bold py-3 rounded-xl flex items-center justify-center transition shadow focus:outline-none hover:shadow-lg transform hover:-translate-y-0.5" style="text-decoration: none; color: white !important;">
+                                        <i class="fas fa-eye mr-2"></i> Buka Detail Laporan
                                     </a>
-                                    <a href="${urlMaps}" target="_blank" class="w-full border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-blue-600 text-xs font-bold py-2 px-3 rounded-lg flex items-center justify-center transition" style="text-decoration: none;">
-                                        <i class="fas fa-map-marked-alt mr-2"></i> Buka Google Maps
+                                    <a href="${urlMaps}" target="_blank" class="w-full bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 text-xs font-bold py-2.5 rounded-xl flex items-center justify-center transition shadow-sm focus:outline-none" style="text-decoration: none;">
+                                        <i class="fas fa-map-marked-alt mr-2 text-green-600"></i> Buka Google Maps
                                     </a>
                                 </div>
                             </div>
-                        `);
+                        `, { maxWidth: 280, minWidth: 280 });
+
                         markerGroup.addLayer(marker);
+                        added++;
                     }
                 }
             });
+            console.log('[SIGAP-beranda] markers added:', added);
         }
     }
 
-    // Fungsi Ganti Layer, Toggle Menu, dan Layar Penuh (Tetap Sama)
+    // Fungsi Ganti Layer, Toggle Menu, dan Layar Penuh
     function gantiLayerPeta(jenis) {
         if(jenis === 'standar') {
             map.removeLayer(layerSatelit);
@@ -318,11 +429,13 @@
 
     document.addEventListener('click', function(event) {
         if(!event.target.closest('#btn-layer') && !event.target.closest('#menu-layer')) {
-            document.getElementById('menu-layer').classList.add('hidden');
+            let menuL = document.getElementById('menu-layer');
+            if(menuL) menuL.classList.add('hidden');
         }
         if(!event.target.closest('#btn-filter') && !event.target.closest('#menu-filter')) {
-            document.getElementById('menu-filter').classList.add('hidden');
+            let menuF = document.getElementById('menu-filter');
+            if(menuF) menuF.classList.add('hidden');
         }
     });
 </script>
-@endsection
+@endpush

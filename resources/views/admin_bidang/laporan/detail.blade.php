@@ -35,7 +35,7 @@
             <span class="mx-2">/</span>
             <a href="{{ route('admin_bidang.laporan') }}" class="hover:text-pupr-blue transition">KELOLA LAPORAN</a>
             <span class="mx-2">/</span>
-            <span class="text-gray-800">DISPOSISI PEGAWAI UPTD</span>
+            <span class="text-gray-800">DETAIL LAPORAN</span>
         </div>
 
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -59,9 +59,13 @@
                     <span class="bg-indigo-500 text-white text-xs font-extrabold px-4 py-2 rounded-full uppercase tracking-wider shadow-sm flex items-center shadow-indigo-200">
                         <i class="fas fa-tools mr-2 animate-pulse"></i> Dalam Pengerjaan
                     </span>
-                @else
+                @elseif($laporan->status == 'selesai')
                     <span class="bg-green-500 text-white text-xs font-extrabold px-4 py-2 rounded-full uppercase tracking-wider shadow-sm flex items-center shadow-green-200">
-                        <i class="fas fa-check-circle mr-2"></i> Selesai
+                        <i class="fas fa-check-circle mr-2"></i> Menunggu Konfirmasi Progres
+                    </span>
+                @elseif($laporan->status == 'terkendala' || $laporan->status == 'perlu_perbaikan')
+                     <span class="bg-red-500 text-white text-xs font-extrabold px-4 py-2 rounded-full uppercase tracking-wider shadow-sm flex items-center shadow-red-200">
+                        <i class="fas fa-exclamation-triangle mr-2"></i> Terkendala / Perlu Perbaikan
                     </span>
                 @endif
             </div>
@@ -184,121 +188,178 @@
         </div>
 
         <div class="lg:col-span-1 animasi-masuk delay-3">
-            <div class="bg-[#1E3A8A] rounded-t-2xl p-5 text-white shadow-md relative overflow-hidden">
-                <div class="absolute -right-4 -top-4 opacity-10"><i class="fas fa-file-signature text-8xl"></i></div>
-                <h3 class="text-sm font-bold flex items-center relative z-10"><i class="fas fa-clipboard-check mr-2"></i> Formulir Disposisi UPTD</h3>
-                <p class="text-[10px] text-blue-200 mt-1 uppercase tracking-wider relative z-10">Kirim tugas langsung ke Aplikasi Mobile</p>
-            </div>
 
-            <div class="bg-white border border-gray-100 border-t-0 rounded-b-2xl shadow-sm p-6">
+            @if($laporan->status == 'selesai' || $laporan->status == 'terkendala')
+                <div class="bg-green-600 rounded-t-2xl p-5 text-white shadow-md relative overflow-hidden">
+                    <div class="absolute -right-4 -top-4 opacity-10"><i class="fas fa-check-double text-8xl"></i></div>
+                    <h3 class="text-sm font-bold flex items-center relative z-10"><i class="fas fa-clipboard-check mr-2"></i> Formulir Konfirmasi Pekerjaan</h3>
+                    <p class="text-[10px] text-green-200 mt-1 uppercase tracking-wider relative z-10">Validasi Hasil Pekerjaan UPTD</p>
+                </div>
 
-                <form id="form-disposisi" action="{{ route('admin_bidang.laporan.tugaskan', $laporan->id) }}" method="POST">
-                    @csrf
-
-                    <div class="mb-5 relative">
-                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Pilih Tim Pelaksana / Pegawai UPTD <span class="text-red-500">*</span></label>
-
-                        <select id="id_pekerja" name="id_pekerja" class="hidden" required {{ $laporan->status != 'diteruskan' ? 'disabled' : '' }}>
-                            <option value="">-- Cari Tim Berdasarkan Wilayah... --</option>
-                            @foreach($pekerja as $tim)
-                                <option value="{{ $tim->id }}"
-                                        data-nama="{{ $tim->nama_lengkap }}"
-                                        data-wilayah="{{ $tim->kantor_wilayah ?? 'Seluruh Wilayah Subang' }}"
-                                        {{ $laporan->id_pekerja == $tim->id ? 'selected' : '' }}>
-                                    {{ $tim->nama_lengkap }}
-                                </option>
-                            @endforeach
-                        </select>
-
-                        <div class="relative" id="custom-select-container">
-                            <div id="custom-select-button" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg p-3 shadow-sm flex justify-between items-center transition duration-200 {{ $laporan->status != 'diteruskan' ? 'opacity-60 cursor-not-allowed bg-gray-100' : 'cursor-pointer hover:border-pupr-blue hover:bg-white' }}">
-                                <span id="custom-select-text" class="font-semibold text-gray-500 truncate mr-2">-- Pilih Pekerja UPTD... --</span>
-                                <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform duration-300" id="custom-select-icon"></i>
-                            </div>
-
-                            <div id="custom-select-dropdown" class="hidden absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] overflow-hidden transform opacity-0 transition-opacity duration-200">
-                                <div class="p-2 bg-gray-50 border-b border-gray-100">
-                                    <div class="relative">
-                                        <i class="fas fa-search absolute left-3 top-2.5 text-gray-400 text-xs"></i>
-                                        <input type="text" id="custom-select-search" class="w-full bg-white border border-gray-200 text-xs rounded-lg pl-8 pr-3 py-2 focus:outline-none focus:border-pupr-blue focus:ring-1 focus:ring-pupr-blue transition shadow-sm" placeholder="Cari nama atau wilayah kerja...">
-                                    </div>
-                                </div>
-                                <ul id="custom-select-list" class="max-h-56 overflow-y-auto custom-scrollbar py-1">
-                                    </ul>
-                            </div>
+                <div class="bg-white border border-gray-100 border-t-0 rounded-b-2xl shadow-sm p-6">
+                    <div class="mb-5">
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Tim Pelaksana / Pekerja UPTD</label>
+                        <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-800 font-semibold">
+                            <i class="fas fa-hard-hat text-gray-400 mr-2"></i> {{ $laporan->pekerja->nama_lengkap ?? 'Nama Pekerja Tidak Ditemukan' }}
                         </div>
-
-                        @if($pekerja->isEmpty())
-                            <p class="text-[10px] text-red-500 font-bold mt-2"><i class="fas fa-exclamation-triangle"></i> Belum ada akun Pekerja UPTD yang aktif di sistem.</p>
-                        @endif
                     </div>
 
                     <div class="mb-5">
-                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Prioritas Tugas</label>
-                        <div class="grid grid-cols-3 gap-2">
-                            <label class="cursor-pointer relative">
-                                <input type="radio" name="prioritas" value="Tinggi" class="peer sr-only" {{ ($laporan->prioritas ?? 'Tinggi') == 'Tinggi' ? 'checked' : '' }} {{ $laporan->status != 'diteruskan' ? 'disabled' : '' }}>
-                                <div class="text-center px-1 py-2.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-500 peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-600 transition shadow-sm hover:bg-gray-50">
-                                    <i class="fas fa-exclamation mr-1"></i> Tinggi
-                                </div>
-                            </label>
-                            <label class="cursor-pointer relative">
-                                <input type="radio" name="prioritas" value="Sedang" class="peer sr-only" {{ ($laporan->prioritas ?? '') == 'Sedang' ? 'checked' : '' }} {{ $laporan->status != 'diteruskan' ? 'disabled' : '' }}>
-                                <div class="text-center px-1 py-2.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-500 peer-checked:border-yellow-500 peer-checked:bg-yellow-50 peer-checked:text-yellow-600 transition shadow-sm hover:bg-gray-50">
-                                    <i class="fas fa-angle-up mr-1"></i> Sedang
-                                </div>
-                            </label>
-                            <label class="cursor-pointer relative">
-                                <input type="radio" name="prioritas" value="Rendah" class="peer sr-only" {{ ($laporan->prioritas ?? '') == 'Rendah' ? 'checked' : '' }} {{ $laporan->status != 'diteruskan' ? 'disabled' : '' }}>
-                                <div class="text-center px-1 py-2.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-500 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-600 transition shadow-sm hover:bg-gray-50">
-                                    <i class="fas fa-angle-down mr-1"></i> Rendah
-                                </div>
-                            </label>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Keterangan Hasil Pekerjaan</label>
+                        <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-700 leading-relaxed min-h-[80px]">
+                            {{ $laporan->keterangan_hasil_pekerja ?? 'Pekerja tidak memberikan keterangan.' }}
                         </div>
                     </div>
 
                     <div class="mb-6">
-                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Instruksi Tambahan</label>
-                        <textarea name="instruksi_tambahan" rows="4" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg focus:ring-pupr-blue focus:border-pupr-blue block p-3 outline-none shadow-sm resize-none text-xs font-medium transition hover:border-blue-200" placeholder="Tulis rincian teknis pengerjaan lapangan..." {{ $laporan->status != 'diteruskan' ? 'readonly' : '' }}>{{ $laporan->instruksi_tambahan ?? '' }}</textarea>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Foto/Video Progres</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            @if(isset($laporan->foto_progres) && $laporan->foto_progres)
+                                @php $urlFotoProgres = \Illuminate\Support\Str::startsWith($laporan->foto_progres, ['http://', 'https://']) ? $laporan->foto_progres : asset('storage/' . $laporan->foto_progres); @endphp
+                                <div onclick="openLightbox('{{ $urlFotoProgres }}', 'image')" class="aspect-video rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shadow-sm cursor-pointer relative group">
+                                    <img src="{{ $urlFotoProgres }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="Foto Progres">
+                                </div>
+                            @else
+                                <div class="col-span-2 p-4 text-center border-2 border-dashed border-gray-300 rounded-lg text-gray-400 text-xs font-medium">
+                                    Tidak ada lampiran progres
+                                </div>
+                            @endif
+                        </div>
                     </div>
 
-                    @if($laporan->status == 'diteruskan')
-                        <button type="button" onclick="konfirmasiDisposisi()" class="w-full bg-pupr-yellow hover:bg-yellow-500 text-white font-extrabold text-sm py-3.5 rounded-lg shadow-sm transition transform hover:-translate-y-0.5 flex justify-center items-center mb-3">
-                            Kirim Penugasan UPTD <i class="fas fa-paper-plane ml-2"></i>
+                    <form action="{{ route('admin_bidang.laporan.setujui_progres', $laporan->id) ?? '#' }}" method="POST" class="mb-3">
+                        @csrf
+                        <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-extrabold text-sm py-3.5 rounded-lg shadow-sm transition transform hover:-translate-y-0.5 flex justify-center items-center">
+                            Setujui Progres <i class="fas fa-check-circle ml-2"></i>
                         </button>
-                    @else
-                        <button type="button" disabled class="w-full bg-gray-100 text-gray-400 font-extrabold text-sm py-3.5 rounded-lg flex justify-center items-center mb-3 cursor-not-allowed border border-gray-200">
-                            Laporan Sedang Dikerjakan Pekerja <i class="fas fa-lock ml-2"></i>
+                    </form>
+
+                    <form id="form-tolak-progres" action="{{ route('admin_bidang.laporan.tolak_progres', $laporan->id) ?? '#' }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="alasan_penolakan" id="alasan_penolakan_progres">
+                        <button type="button" onclick="konfirmasiTolakProgres()" class="w-full bg-red-50 hover:bg-red-500 text-red-600 hover:text-white border border-red-200 font-extrabold text-sm py-3 rounded-lg transition transform hover:-translate-y-0.5 flex justify-center items-center shadow-sm">
+                            Tolak Progres (Minta Revisi) <i class="fas fa-times-circle ml-2"></i>
                         </button>
-                    @endif
-                </form>
-
-                <div class="mt-4 pt-4 border-t border-gray-100">
-
-                    @if($laporan->status == 'diteruskan')
-                        <form id="form-kembalikan-pusat" action="{{ route('admin_bidang.laporan.kembalikan', $laporan->id) ?? '#' }}" method="POST">
-                            @csrf
-                            <input type="hidden" name="alasan_pengembalian" id="alasan_pengembalian_pusat">
-                            <button type="button" onclick="konfirmasiKembalikanPusat()" class="w-full bg-[#313C59] hover:bg-[#1E293B] text-white font-bold text-sm py-3 rounded-lg transition transform hover:-translate-y-0.5 flex justify-center items-center shadow-sm">
-                                <i class="fas fa-reply mr-2"></i> Kembalikan ke Admin Universal
-                            </button>
-                        </form>
-                        <p class="text-[9px] text-center text-gray-400 mt-2">Gunakan jika laporan ini bukan wewenang bidang Anda.</p>
-
-                    @elseif($laporan->status == 'proses')
-                        <form id="form-batalkan-tugas" action="{{ route('admin_bidang.laporan.batal_tugas', $laporan->id) ?? '#' }}" method="POST">
-                            @csrf
-                            <input type="hidden" name="alasan_pembatalan" id="alasan_pembatalan_tugas">
-                            <button type="button" onclick="konfirmasiBatalkanTugas()" class="w-full bg-red-50 text-red-600 border border-red-200 hover:bg-red-500 hover:text-white font-bold text-sm py-3 rounded-lg transition transform hover:-translate-y-0.5 flex justify-center items-center shadow-sm">
-                                <i class="fas fa-times-circle mr-2"></i> Batalkan Penugasan Pekerja
-                            </button>
-                        </form>
-                        <p class="text-[9px] text-center text-gray-400 mt-2">Menarik kembali tugas dari Pekerja UPTD.</p>
-                    @endif
-
+                    </form>
                 </div>
 
-            </div>
+            @else
+                <div class="bg-[#1E3A8A] rounded-t-2xl p-5 text-white shadow-md relative overflow-hidden">
+                    <div class="absolute -right-4 -top-4 opacity-10"><i class="fas fa-file-signature text-8xl"></i></div>
+                    <h3 class="text-sm font-bold flex items-center relative z-10"><i class="fas fa-clipboard-check mr-2"></i> Formulir Disposisi UPTD</h3>
+                    <p class="text-[10px] text-blue-200 mt-1 uppercase tracking-wider relative z-10">Kirim tugas langsung ke Aplikasi Mobile</p>
+                </div>
+
+                <div class="bg-white border border-gray-100 border-t-0 rounded-b-2xl shadow-sm p-6">
+
+                    <form id="form-disposisi" action="{{ route('admin_bidang.laporan.tugaskan', $laporan->id) }}" method="POST">
+                        @csrf
+
+                        <div class="mb-5 relative">
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Pilih Tim Pelaksana / Pegawai UPTD <span class="text-red-500">*</span></label>
+
+                            <select id="id_pekerja" name="id_pekerja" class="hidden" required {{ $laporan->status != 'diteruskan' ? 'disabled' : '' }}>
+                                <option value="">-- Cari Tim Berdasarkan Wilayah... --</option>
+                                @foreach($pekerja as $tim)
+                                    <option value="{{ $tim->id }}"
+                                            data-nama="{{ $tim->nama_lengkap }}"
+                                            data-wilayah="{{ $tim->kantor_wilayah ?? 'Seluruh Wilayah Subang' }}"
+                                            {{ $laporan->id_pekerja == $tim->id ? 'selected' : '' }}>
+                                        {{ $tim->nama_lengkap }}
+                                    </option>
+                                @endforeach
+                            </select>
+
+                            <div class="relative" id="custom-select-container">
+                                <div id="custom-select-button" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg p-3 shadow-sm flex justify-between items-center transition duration-200 {{ $laporan->status != 'diteruskan' ? 'opacity-60 cursor-not-allowed bg-gray-100' : 'cursor-pointer hover:border-pupr-blue hover:bg-white' }}">
+                                    <span id="custom-select-text" class="font-semibold text-gray-500 truncate mr-2">-- Pilih Pekerja UPTD... --</span>
+                                    <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform duration-300" id="custom-select-icon"></i>
+                                </div>
+
+                                <div id="custom-select-dropdown" class="hidden absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] overflow-hidden transform opacity-0 transition-opacity duration-200">
+                                    <div class="p-2 bg-gray-50 border-b border-gray-100">
+                                        <div class="relative">
+                                            <i class="fas fa-search absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                                            <input type="text" id="custom-select-search" class="w-full bg-white border border-gray-200 text-xs rounded-lg pl-8 pr-3 py-2 focus:outline-none focus:border-pupr-blue focus:ring-1 focus:ring-pupr-blue transition shadow-sm" placeholder="Cari nama atau wilayah kerja...">
+                                        </div>
+                                    </div>
+                                    <ul id="custom-select-list" class="max-h-56 overflow-y-auto custom-scrollbar py-1">
+                                        </ul>
+                                </div>
+                            </div>
+
+                            @if($pekerja->isEmpty())
+                                <p class="text-[10px] text-red-500 font-bold mt-2"><i class="fas fa-exclamation-triangle"></i> Belum ada akun Pekerja UPTD yang aktif di sistem.</p>
+                            @endif
+                        </div>
+
+                        <div class="mb-5">
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Prioritas Tugas</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <label class="cursor-pointer relative">
+                                    <input type="radio" name="prioritas" value="Tinggi" class="peer sr-only" {{ ($laporan->prioritas ?? 'Tinggi') == 'Tinggi' ? 'checked' : '' }} {{ $laporan->status != 'diteruskan' ? 'disabled' : '' }}>
+                                    <div class="text-center px-1 py-2.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-500 peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-600 transition shadow-sm hover:bg-gray-50">
+                                        <i class="fas fa-exclamation mr-1"></i> Tinggi
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer relative">
+                                    <input type="radio" name="prioritas" value="Sedang" class="peer sr-only" {{ ($laporan->prioritas ?? '') == 'Sedang' ? 'checked' : '' }} {{ $laporan->status != 'diteruskan' ? 'disabled' : '' }}>
+                                    <div class="text-center px-1 py-2.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-500 peer-checked:border-yellow-500 peer-checked:bg-yellow-50 peer-checked:text-yellow-600 transition shadow-sm hover:bg-gray-50">
+                                        <i class="fas fa-angle-up mr-1"></i> Sedang
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer relative">
+                                    <input type="radio" name="prioritas" value="Rendah" class="peer sr-only" {{ ($laporan->prioritas ?? '') == 'Rendah' ? 'checked' : '' }} {{ $laporan->status != 'diteruskan' ? 'disabled' : '' }}>
+                                    <div class="text-center px-1 py-2.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-500 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-600 transition shadow-sm hover:bg-gray-50">
+                                        <i class="fas fa-angle-down mr-1"></i> Rendah
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Instruksi Tambahan</label>
+                            <textarea name="instruksi_tambahan" rows="4" class="w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg focus:ring-pupr-blue focus:border-pupr-blue block p-3 outline-none shadow-sm resize-none text-xs font-medium transition hover:border-blue-200" placeholder="Tulis rincian teknis pengerjaan lapangan..." {{ $laporan->status != 'diteruskan' ? 'readonly' : '' }}>{{ $laporan->instruksi_tambahan ?? '' }}</textarea>
+                        </div>
+
+                        @if($laporan->status == 'diteruskan')
+                            <button type="button" onclick="konfirmasiDisposisi()" class="w-full bg-pupr-yellow hover:bg-yellow-500 text-white font-extrabold text-sm py-3.5 rounded-lg shadow-sm transition transform hover:-translate-y-0.5 flex justify-center items-center mb-3">
+                                Kirim Penugasan UPTD <i class="fas fa-paper-plane ml-2"></i>
+                            </button>
+                        @else
+                            <button type="button" disabled class="w-full bg-gray-100 text-gray-400 font-extrabold text-sm py-3.5 rounded-lg flex justify-center items-center mb-3 cursor-not-allowed border border-gray-200">
+                                Laporan Sedang Dikerjakan Pekerja <i class="fas fa-lock ml-2"></i>
+                            </button>
+                        @endif
+                    </form>
+
+                    <div class="mt-4 pt-4 border-t border-gray-100">
+
+                        @if($laporan->status == 'diteruskan')
+                            <form id="form-kembalikan-pusat" action="{{ route('admin_bidang.laporan.kembalikan', $laporan->id) ?? '#' }}" method="POST">
+                                @csrf
+                                <input type="hidden" name="alasan_pengembalian" id="alasan_pengembalian_pusat">
+                                <button type="button" onclick="konfirmasiKembalikanPusat()" class="w-full bg-[#313C59] hover:bg-[#1E293B] text-white font-bold text-sm py-3 rounded-lg transition transform hover:-translate-y-0.5 flex justify-center items-center shadow-sm">
+                                    <i class="fas fa-reply mr-2"></i> Kembalikan ke Admin Universal
+                                </button>
+                            </form>
+                            <p class="text-[9px] text-center text-gray-400 mt-2">Gunakan jika laporan ini bukan wewenang bidang Anda.</p>
+
+                        @elseif($laporan->status == 'proses')
+                            <form id="form-batalkan-tugas" action="{{ route('admin_bidang.laporan.batal_tugas', $laporan->id) ?? '#' }}" method="POST">
+                                @csrf
+                                <input type="hidden" name="alasan_pembatalan" id="alasan_pembatalan_tugas">
+                                <button type="button" onclick="konfirmasiBatalkanTugas()" class="w-full bg-red-50 text-red-600 border border-red-200 hover:bg-red-500 hover:text-white font-bold text-sm py-3 rounded-lg transition transform hover:-translate-y-0.5 flex justify-center items-center shadow-sm">
+                                    <i class="fas fa-times-circle mr-2"></i> Batalkan Penugasan Pekerja
+                                </button>
+                            </form>
+                            <p class="text-[9px] text-center text-gray-400 mt-2">Menarik kembali tugas dari Pekerja UPTD.</p>
+                        @endif
+
+                    </div>
+
+                </div>
+            @endif
         </div>
 
     </div>
@@ -323,6 +384,8 @@
     // --- SCRIPT CUSTOM SELECT DROPDOWN (UI PREMIUM) ---
     document.addEventListener("DOMContentLoaded", function() {
         const nativeSelect = document.getElementById('id_pekerja');
+        if(!nativeSelect) return; // Keluar jika form select tidak ada di halaman
+
         const customBtn = document.getElementById('custom-select-button');
         const customText = document.getElementById('custom-select-text');
         const customDropdown = document.getElementById('custom-select-dropdown');
@@ -333,29 +396,25 @@
         let isSelectDisabled = nativeSelect.disabled;
 
         function initCustomSelect() {
-            // Cek apakah ada data yang sudah terpilih (saat load halaman)
             if(nativeSelect.value !== "") {
                 let selectedOpt = nativeSelect.options[nativeSelect.selectedIndex];
                 customText.innerHTML = `<span class="text-gray-800 font-bold">${selectedOpt.getAttribute('data-nama')}</span>`;
                 customBtn.classList.add('border-blue-300', 'bg-white');
             }
 
-            populateList(''); // Muat seluruh daftar pekerja
+            populateList('');
 
-            if(isSelectDisabled) return; // Jika status laporan bukan "diteruskan", matikan fungsi klik
+            if(isSelectDisabled) return;
 
-            // Buka tutup dropdown saat tombol ditekan
             customBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 toggleDropdown();
             });
 
-            // Filter data saat mengetik di kolom pencarian
             customSearch.addEventListener('input', function(e) {
                 populateList(e.target.value.toLowerCase());
             });
 
-            // Tutup dropdown jika area luar di klik
             document.addEventListener('click', function(e) {
                 if(!customBtn.contains(e.target) && !customDropdown.contains(e.target)) {
                     closeDropdown();
@@ -387,19 +446,17 @@
             let hasResult = false;
 
             Array.from(nativeSelect.options).forEach((opt, index) => {
-                if(index === 0) return; // Lewati opsi placeholder pertama "-- Pilih Tim --"
+                if(index === 0) return;
 
                 let val = opt.value;
                 let nama = opt.getAttribute('data-nama');
                 let wilayah = opt.getAttribute('data-wilayah');
 
-                // Pencarian bisa dari Nama Pekerja ATAU Wilayah Kerjanya
                 if(nama.toLowerCase().includes(filterText) || wilayah.toLowerCase().includes(filterText)) {
                     hasResult = true;
                     let li = document.createElement('li');
                     li.className = 'px-4 py-3 cursor-pointer transition border-b border-gray-50 last:border-0 relative flex flex-col group';
 
-                    // Style khusus jika item sedang terpilih
                     if(nativeSelect.value === val) {
                         li.classList.add('bg-blue-50');
                     } else {
@@ -414,14 +471,13 @@
                         <span class="text-[10px] text-gray-500 font-medium mt-1 flex items-center"><i class="fas fa-map-marker-alt text-gray-300 mr-1.5"></i> ${wilayah}</span>
                     `;
 
-                    // Aksi ketika list diklik
                     li.addEventListener('click', () => {
-                        nativeSelect.value = val; // Set data ke form asli
+                        nativeSelect.value = val;
                         customText.innerHTML = `<span class="text-gray-800 font-bold">${nama}</span>`;
                         customBtn.classList.add('border-blue-300', 'bg-white');
                         closeDropdown();
-                        customSearch.value = ''; // Reset form pencarian
-                        populateList(''); // Render ulang list untuk memindahkan tanda checklist
+                        customSearch.value = '';
+                        populateList('');
                     });
 
                     customList.appendChild(li);
@@ -505,6 +561,26 @@
                 document.getElementById('alasan_pembatalan_tugas').value = result.value;
                 Swal.fire({ title: 'Memproses...', allowOutsideClick: false, showConfirmButton: false, didOpen: () => { Swal.showLoading(); }});
                 document.getElementById('form-batalkan-tugas').submit();
+            }
+        });
+    }
+
+    // 4. FUNGSI TOLAK PROGRES PEKERJA
+    function konfirmasiTolakProgres() {
+        Swal.fire({
+            title: 'Tolak Progres Pekerjaan?',
+            text: 'Pekerja UPTD harus memperbarui progresnya. Berikan alasan penolakan:',
+            input: 'textarea',
+            inputPlaceholder: 'Contoh: Foto bukti kurang jelas, mohon lampirkan ulang dari sudut lain...',
+            icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', cancelButtonColor: '#9ca3af',
+            confirmButtonText: 'Ya, Tolak & Revisi', cancelButtonText: 'Batal', reverseButtons: true,
+            customClass: { popup: 'rounded-2xl shadow-xl' },
+            inputValidator: (value) => { if (!value) return 'Alasan penolakan wajib diisi agar pekerja bisa memperbaikinya!'; }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('alasan_penolakan_progres').value = result.value;
+                Swal.fire({ title: 'Memproses...', allowOutsideClick: false, showConfirmButton: false, didOpen: () => { Swal.showLoading(); }});
+                document.getElementById('form-tolak-progres').submit();
             }
         });
     }

@@ -35,6 +35,7 @@
         ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
     </style>
+    @stack('css')
 </head>
 <body class="flex">
 
