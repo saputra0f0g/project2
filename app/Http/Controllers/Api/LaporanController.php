@@ -42,8 +42,14 @@ class LaporanController extends Controller
     public function indexSemua(Request $request)
     {
         $user = $request->user();
-        if ($user->peran === 'masyarakat') {
-            return response()->json(['message' => 'Akses ditolak.'], 403);
+
+        // Hanya admin_universal dan admin_bidang yang boleh melihat semua laporan.
+        // Pekerja lapangan harus menggunakan endpoint /api/pekerja/tugas untuk data mereka.
+        $peranDiizinkan = ['admin_universal', 'admin_bidang'];
+        if (!in_array($user->peran, $peranDiizinkan)) {
+            return response()->json([
+                'message' => 'Akses ditolak. Gunakan endpoint /api/pekerja/tugas untuk melihat tugas Anda.',
+            ], 403);
         }
 
         $query = LaporanKeluhan::with(['pelapor', 'bidangTujuan'])->latest();
@@ -143,7 +149,7 @@ class LaporanController extends Controller
         }
 
         $request->validate([
-            'status'  => 'required|in:pending,diteruskan,proses,selesai,ditolak,terkendala',
+            'status'  => 'required|in:pending,diteruskan,dikembalikan,menunggu_validasi,ditolak,ditunda,proses,terkendala,revisi,selesai',
             'catatan' => 'nullable|string',
         ]);
 
@@ -190,7 +196,7 @@ class LaporanController extends Controller
         return response()->json([
             'total'      => (clone $query)->count(),
             'menunggu'   => (clone $query)->where('status', 'pending')->count(),
-            'diproses'   => (clone $query)->whereIn('status', ['diteruskan', 'proses'])->count(),
+            'diproses'   => (clone $query)->whereNotIn('status', ['pending', 'selesai', 'ditolak'])->count(),
             'selesai'    => (clone $query)->where('status', 'selesai')->count(),
             'ditolak'    => (clone $query)->where('status', 'ditolak')->count(),
         ]);
@@ -206,13 +212,38 @@ class LaporanController extends Controller
             return response()->json(['message' => 'Akses ditolak.'], 403);
         }
 
+        if ($user->peran === 'pekerja_bidang') {
+            $query = \App\Models\PenugasanPekerja::where('id_pekerja', $user->id);
+
+            return response()->json([
+                'total'      => (clone $query)->where('status_tugas', '!=', 'selesai')->count(),
+                'menunggu'   => (clone $query)->whereIn('status_tugas', ['ditugaskan', 'revisi'])->count(),
+                'diproses'   => (clone $query)->whereIn('status_tugas', ['dikerjakan', 'survei_selesai', 'ditunda', 'menunggu_review'])->count(),
+                'selesai'    => (clone $query)->where('status_tugas', 'selesai')->count(),
+                'terkendala' => (clone $query)->where('status_tugas', 'terkendala')->count(),
+                'ditolak'    => 0,
+                'bidang'     => [
+                    'bina_marga'  => (clone $query)->whereHas('laporan', function ($q) {
+                        $q->whereRaw('LOWER(kategori_bidang) LIKE ?', ['%bina marga%']);
+                    })->where('status_tugas', '!=', 'selesai')->count(),
+                    'sda'         => (clone $query)->whereHas('laporan', function ($q) {
+                        $q->whereRaw('LOWER(kategori_bidang) LIKE ?', ['%air%']);
+                    })->where('status_tugas', '!=', 'selesai')->count(),
+                    'cipta_karya' => (clone $query)->whereHas('laporan', function ($q) {
+                        $q->whereRaw('LOWER(kategori_bidang) LIKE ?', ['%cipta karya%']);
+                    })->where('status_tugas', '!=', 'selesai')->count(),
+                ]
+            ]);
+        }
+
         $query = LaporanKeluhan::query();
 
         return response()->json([
             'total'      => (clone $query)->whereNotIn('status', ['selesai', 'ditolak'])->count(),
             'menunggu'   => (clone $query)->where('status', 'pending')->count(),
-            'diproses'   => (clone $query)->whereIn('status', ['diteruskan', 'proses'])->count(),
+            'diproses'   => (clone $query)->whereNotIn('status', ['pending', 'selesai', 'ditolak', 'terkendala'])->count(),
             'selesai'    => (clone $query)->where('status', 'selesai')->count(),
+            'terkendala' => (clone $query)->where('status', 'terkendala')->count(),
             'ditolak'    => (clone $query)->where('status', 'ditolak')->count(),
             'bidang'     => [
                 'bina_marga'  => (clone $query)->whereRaw('LOWER(kategori_bidang) LIKE ?', ['%bina marga%'])->whereNotIn('status', ['selesai', 'ditolak'])->count(),
@@ -233,7 +264,7 @@ class LaporanController extends Controller
         }
 
         $request->validate([
-            'status'  => 'required|in:pending,diteruskan,proses,selesai,ditolak,terkendala',
+            'status'  => 'required|in:pending,diteruskan,dikembalikan,menunggu_validasi,ditolak,ditunda,proses,terkendala,revisi,selesai',
             'catatan' => 'nullable|string',
             'foto'    => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         ]);
@@ -305,13 +336,17 @@ class LaporanController extends Controller
     private function mapStatus(string $status): string
     {
         return match ($status) {
-            'pending'      => 'Menunggu',
-            'diteruskan'   => 'Diproses',
-            'proses'       => 'Diproses',
-            'selesai'      => 'Selesai',
-            'ditolak'      => 'Ditolak',
-            'terkendala'   => 'Terkendala',
-            default        => $status,
+            'pending'           => 'Menunggu',
+            'diteruskan'        => 'Diteruskan',
+            'dikembalikan'      => 'Dikembalikan',
+            'menunggu_validasi' => 'Menunggu Validasi',
+            'ditolak'           => 'Ditolak',
+            'ditunda'           => 'Ditunda',
+            'proses'            => 'Diproses',
+            'terkendala'        => 'Terkendala',
+            'revisi'            => 'Revisi',
+            'selesai'           => 'Selesai',
+            default             => ucfirst(str_replace('_', ' ', $status)),
         };
     }
 }

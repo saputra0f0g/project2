@@ -20,8 +20,8 @@ class StatistikController extends Controller
         // =========================================================
         $total_laporan = LaporanKeluhan::whereYear('created_at', $tahun)->count();
         $selesai = LaporanKeluhan::whereYear('created_at', $tahun)->where('status', 'selesai')->count();
-        $dalam_proses = LaporanKeluhan::whereYear('created_at', $tahun)->where('status', 'proses')->count();
-        $menunggu = LaporanKeluhan::whereYear('created_at', $tahun)->where('status', 'pending')->count();
+        $dalam_proses = LaporanKeluhan::whereYear('created_at', $tahun)->whereNotIn('status', ['pending', 'dikembalikan', 'selesai', 'ditolak'])->count();
+        $menunggu = LaporanKeluhan::whereYear('created_at', $tahun)->whereIn('status', ['pending', 'dikembalikan'])->count();
 
         // Logika Pintar untuk membandingkan dengan bulan lalu (Tren)
         $bulan_ini = Carbon::now()->month;

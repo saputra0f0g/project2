@@ -55,9 +55,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/laporan/simpan-manual', [LaporanUniversal::class, 'simpan'])->name('laporan.simpan');
         Route::delete('/admin-universal/laporan/log/hapus', [App\Http\Controllers\AdminUniversal\LaporanController::class, 'hapusSemuaLog'])->name('admin_universal.laporan.log.hapus');
 
-        // Rute untuk menghapus riwayat aktivitas laporan
-        // Menggunakan method DELETE karena ini adalah aksi menghapus data dari database
-        Route::delete('/admin-universal/laporan/log/hapus', [LaporanController::class, 'hapusSemuaLog'])->name('admin_universal.laporan.log.hapus');
+
 
         // Detail Laporan & Aksi Status
         Route::get('/laporan/detail/{id}', [LaporanUniversal::class, 'detail'])->name('laporan.detail');
@@ -107,6 +105,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/laporan', [LaporanBidangController::class, 'indeks'])->name('laporan');
         Route::get('/laporan/detail/{id}', [LaporanBidangController::class, 'detail'])->name('laporan.detail');
         Route::post('/laporan/tugaskan/{id}', [LaporanBidangController::class, 'tugaskan'])->name('laporan.tugaskan');
+        Route::post('/laporan/validasi-survei/{id}', [LaporanBidangController::class, 'validasiSurvei'])->name('laporan.validasi_survei');
+        Route::post('/laporan/setujui-progres/{id}', [LaporanBidangController::class, 'setujuiProgres'])->name('laporan.setujui_progres');
+        Route::post('/laporan/tolak-progres/{id}', [LaporanBidangController::class, 'tolakProgres'])->name('laporan.tolak_progres');
 
         Route::get('/laporan/ekspor-excel', [LaporanBidangController::class, 'eksporExcel'])->name('laporan.ekspor_excel');
         Route::get('/laporan/ekspor-pdf', [LaporanBidangController::class, 'eksporPdf'])->name('laporan.ekspor_pdf');
@@ -133,12 +134,6 @@ Route::middleware(['auth'])->group(function () {
         // Rute untuk menghapus SALAH SATU log
         Route::delete('/profil/log/{id}/hapus', [App\Http\Controllers\AdminBidang\ProfilController::class, 'hapusLogSatu'])->name('profil.log.hapus_satu');
     });
-
-
-    // ==========================================
-    // RUTE PEKERJA LAPANGAN / UPTD
-    // ==========================================
-
 
     //==============================================================================================================
     // Rute Uji Coba Notifikasi (Bisa dihapus nanti jika sisi Masyarakat sudah dibuat)

@@ -17,8 +17,8 @@ class BerandaController extends Controller
         // === LOGIKA STATISTIK KARTU ATAS (Dinamis) ===
         $total_laporan = DB::table('laporan_keluhan')->count();
         $selesai = DB::table('laporan_keluhan')->where('status', 'selesai')->count();
-        $dalam_proses = DB::table('laporan_keluhan')->where('status', 'proses')->count();
-        $laporan_terbaru = DB::table('laporan_keluhan')->where('status', 'pending')->count();
+        $dalam_proses = DB::table('laporan_keluhan')->whereNotIn('status', ['pending', 'dikembalikan', 'selesai', 'ditolak'])->count();
+        $laporan_terbaru = DB::table('laporan_keluhan')->whereIn('status', ['pending', 'dikembalikan'])->count();
 
         // Hitung Perbandingan Laporan (Bulan Ini vs Bulan Lalu)
         $bulanIni = Carbon::now()->month;

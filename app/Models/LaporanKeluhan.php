@@ -44,4 +44,10 @@ class LaporanKeluhan extends Model
         // Menyambungkan id_pekerja di tabel laporan dengan id di tabel users
         return $this->belongsTo(User::class, 'id_pekerja', 'id');
     }
+
+    // Relasi ke PenugasanPekerja
+    public function penugasan()
+    {
+        return $this->hasOne(PenugasanPekerja::class, 'id_laporan')->latestOfMany();
+    }
 }

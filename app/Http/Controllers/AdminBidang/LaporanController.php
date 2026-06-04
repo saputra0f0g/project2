@@ -23,19 +23,19 @@ class LaporanController extends Controller
 
         $laporan_masuk = LaporanKeluhan::with('pelapor')
             ->where('kategori_bidang', $namaBidangAdmin)
-            ->whereIn('status', ['diteruskan', 'proses', 'selesai'])
+            ->whereIn('status', ['diteruskan', 'menunggu_validasi', 'proses', 'terkendala', 'revisi', 'ditunda', 'selesai', 'ditolak'])
             ->orderBy('updated_at', 'desc')
             ->paginate(10);
 
         $statistik = [
-            'total'    => LaporanKeluhan::where('kategori_bidang', $namaBidangAdmin)->whereIn('status', ['diteruskan', 'proses', 'selesai'])->count(),
-            'menunggu' => LaporanKeluhan::where('kategori_bidang', $namaBidangAdmin)->where('status', 'diteruskan')->count(),
-            'proses'   => LaporanKeluhan::where('kategori_bidang', $namaBidangAdmin)->where('status', 'proses')->count(),
+            'total'    => LaporanKeluhan::where('kategori_bidang', $namaBidangAdmin)->whereIn('status', ['diteruskan', 'menunggu_validasi', 'proses', 'terkendala', 'revisi', 'ditunda', 'selesai', 'ditolak'])->count(),
+            'menunggu' => LaporanKeluhan::where('kategori_bidang', $namaBidangAdmin)->whereIn('status', ['diteruskan', 'menunggu_validasi'])->count(),
+            'proses'   => LaporanKeluhan::where('kategori_bidang', $namaBidangAdmin)->whereIn('status', ['proses', 'terkendala', 'revisi', 'ditunda'])->count(),
             'selesai'  => LaporanKeluhan::where('kategori_bidang', $namaBidangAdmin)->where('status', 'selesai')->count(),
         ];
 
         $sebaran_laporan = LaporanKeluhan::where('kategori_bidang', $namaBidangAdmin)
-            ->whereIn('status', ['diteruskan', 'proses', 'selesai'])
+            ->whereIn('status', ['diteruskan', 'menunggu_validasi', 'proses', 'terkendala', 'revisi', 'ditunda', 'selesai'])
             ->get(['id', 'id_laporan', 'lokasi_gps', 'status', 'kategori_bidang']);
 
         // AMBIL DATA AKTIVITAS UNTUK DITAMPILKAN DI SIDEBAR PETA
@@ -77,7 +77,7 @@ class LaporanController extends Controller
         $user = Auth::user();
         $namaBidangAdmin = $user->bidang->nama_bidang ?? '';
 
-        $laporan = LaporanKeluhan::with('pelapor')
+        $laporan = LaporanKeluhan::with(['pelapor', 'penugasan.buktiProgres'])
             ->where('kategori_bidang', $namaBidangAdmin)
             ->findOrFail($id);
 
@@ -150,9 +150,9 @@ class LaporanController extends Controller
 
         $alasan = $request->alasan_pengembalian ?? 'Tidak ada alasan.';
 
-        // Ubah status jadi pending, dan kosongkan kategori bidang agar kembali ditangani Admin Universal
+        // Ubah status jadi dikembalikan, dan kosongkan kategori bidang agar kembali ditangani Admin Universal
         $laporan->update([
-            'status' => 'pending',
+            'status' => 'dikembalikan',
             'kategori_bidang' => null,
             'catatan_disposisi' => "Dikembalikan oleh Bidang " . $namaBidangAdmin . ". Alasan: " . $alasan
         ]);
@@ -274,5 +274,113 @@ class LaporanController extends Controller
         $pdf->setPaper('legal', 'landscape');
 
         return $pdf->download('Rekap_Laporan_' . str_replace(' ', '_', $namaBidangAdmin) . '_' . date('Y_m_d') . '.pdf');
+    }
+
+    /**
+     * Validasi hasil survei lapangan dari UPTD
+     */
+    public function validasiSurvei(Request $request, $id)
+    {
+        $request->validate([
+            'aksi' => 'required|in:acc,tunda,tolak',
+            'catatan' => 'required_if:aksi,tunda,tolak|nullable|string',
+        ]);
+
+        $user = Auth::user();
+        $namaBidangAdmin = $user->bidang->nama_bidang ?? '';
+
+        $laporan = LaporanKeluhan::where('kategori_bidang', $namaBidangAdmin)->findOrFail($id);
+        $penugasan = PenugasanPekerja::where('id_laporan', $laporan->id)->latest()->firstOrFail();
+
+        $aksi = $request->aksi;
+        $catatan = $request->catatan;
+
+        if ($aksi === 'acc') {
+            $laporan->update(['status' => 'proses']);
+            $penugasan->update(['status_tugas' => 'dikerjakan']);
+            $msg = 'Hasil survei disetujui! Status laporan diubah menjadi PROSES perbaikan.';
+        } elseif ($aksi === 'tunda') {
+            $laporan->update(['status' => 'ditunda']);
+            $penugasan->update([
+                'status_tugas' => 'ditunda',
+                'alasan_penundaan' => $catatan
+            ]);
+            $msg = 'Pengerjaan ditunda sementara.';
+        } else {
+            $laporan->update([
+                'status' => 'ditolak',
+                'alasan_penolakan' => $catatan
+            ]);
+            $penugasan->update([
+                'status_tugas' => 'dibatalkan',
+                'alasan_penundaan' => 'Ditolak saat validasi survei: ' . $catatan
+            ]);
+            $msg = 'Laporan telah ditolak.';
+        }
+
+        // Catat ke log aktivitas
+        LogAktivitas::create([
+            'aktivitas' => "Melakukan validasi survei untuk Laporan #" . $laporan->id_laporan . " (Aksi: " . strtoupper($aksi) . ")",
+            'kategori'  => 'laporan_bidang',
+            'user_id'   => $user->id
+        ]);
+
+        return redirect()->route('admin_bidang.laporan.detail', $id)->with('sukses', $msg);
+    }
+
+    /**
+     * Setujui hasil pekerjaan akhir dari UPTD
+     */
+    public function setujuiProgres($id)
+    {
+        $user = Auth::user();
+        $namaBidangAdmin = $user->bidang->nama_bidang ?? '';
+
+        $laporan = LaporanKeluhan::where('kategori_bidang', $namaBidangAdmin)->findOrFail($id);
+        $penugasan = PenugasanPekerja::where('id_laporan', $laporan->id)->latest()->firstOrFail();
+
+        $laporan->update(['status' => 'selesai']);
+        $penugasan->update([
+            'status_tugas' => 'selesai',
+            'progres_persen' => 100
+        ]);
+
+        LogAktivitas::create([
+            'aktivitas' => "Menyetujui progres akhir Laporan #" . $laporan->id_laporan . ". Perbaikan selesai.",
+            'kategori'  => 'laporan_bidang',
+            'user_id'   => $user->id
+        ]);
+
+        return redirect()->route('admin_bidang.laporan.detail', $id)->with('sukses', 'Pekerjaan perbaikan disetujui dan laporan dinyatakan SELESAI!');
+    }
+
+    /**
+     * Tolak progres akhir dari UPTD dan minta revisi
+     */
+    public function tolakProgres(Request $request, $id)
+    {
+        $request->validate([
+            'alasan_penolakan' => 'required|string',
+        ]);
+
+        $user = Auth::user();
+        $namaBidangAdmin = $user->bidang->nama_bidang ?? '';
+
+        $laporan = LaporanKeluhan::where('kategori_bidang', $namaBidangAdmin)->findOrFail($id);
+        $penugasan = PenugasanPekerja::where('id_laporan', $laporan->id)->latest()->firstOrFail();
+
+        $laporan->update(['status' => 'revisi']);
+        $penugasan->update([
+            'status_tugas' => 'revisi',
+            'catatan_revisi' => $request->alasan_penolakan
+        ]);
+
+        LogAktivitas::create([
+            'aktivitas' => "Menolak progres akhir & meminta revisi untuk Laporan #" . $laporan->id_laporan,
+            'kategori'  => 'laporan_bidang',
+            'user_id'   => $user->id
+        ]);
+
+        return redirect()->route('admin_bidang.laporan.detail', $id)->with('sukses', 'Progres ditolak. Tim UPTD telah diminta melakukan revisi.');
     }
 }

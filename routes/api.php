@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\LaporanController;
+use App\Http\Controllers\Api\PenugasanController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -66,4 +67,50 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Daftar pegawai (khusus admin)
     Route::get('/pegawai', [UserController::class, 'getDaftarPegawai']);
+
+    // ─── PEKERJA LAPANGAN / UPTD ──────────────────────────────────────────────
+    // Endpoint khusus mobile app pekerja. Semua data difilter by id_pekerja = auth()->id()
+    // sehingga pekerja HANYA bisa melihat tugas yang ditugaskan ke dirinya sendiri.
+    Route::prefix('pekerja')->group(function () {
+        // Daftar tugas milik pekerja yang login (support filter ?status= dan ?per_page=)
+        Route::get('/tugas',              [PenugasanController::class, 'getTugasPekerja']);
+
+        // Detail satu penugasan beserta bukti progres
+        Route::get('/tugas/{id}',         [PenugasanController::class, 'show']);
+
+        // Submit hasil survei lapangan → status otomatis jadi 'survei_selesai'
+        Route::post('/tugas/{id}/survei', [PenugasanController::class, 'submitSurvei']);
+
+        // Upload foto/video bukti progres (max 5 file per penugasan)
+        Route::post('/tugas/{id}/progres',[PenugasanController::class, 'uploadProgres']);
+
+        // Update status & progres penugasan secara manual
+        Route::patch('/tugas/{id}/status',[PenugasanController::class, 'updateStatus']);
+    });
+
+    // ─── DEBUG SEMENTARA (hapus setelah masalah teridentifikasi) ─────────────
+    Route::get('/debug/tugas-saya', function () {
+        $user = auth()->user();
+
+        // Cek semua penugasan yang id_pekerja-nya cocok dengan user login
+        $semuaTugas = \App\Models\PenugasanPekerja::where('id_pekerja', $user->id)->get();
+
+        // Cek juga tanpa filter (semua data di tabel)
+        $totalSemuaData = \App\Models\PenugasanPekerja::count();
+
+        return response()->json([
+            'user_id_login'       => $user->id,
+            'user_nama'           => $user->nama_lengkap,
+            'user_peran'          => $user->peran,
+            'total_data_di_tabel' => $totalSemuaData,
+            'jumlah_tugas_cocok'  => $semuaTugas->count(),
+            'tugas'               => $semuaTugas->map(fn($t) => [
+                'id'           => $t->id,
+                'id_pekerja'   => $t->id_pekerja,
+                'id_laporan'   => $t->id_laporan,
+                'status_tugas' => $t->status_tugas,
+                'created_at'   => $t->created_at,
+            ]),
+        ]);
+    });
 });

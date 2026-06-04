@@ -15,9 +15,14 @@ class PenugasanPekerja extends Model
         'id_laporan',
         'id_admin_bidang',
         'id_pekerja',
+        'status_validitas_survei',
+        'deskripsi_temuan_survei',
+        'rekomendasi_survei',
         'instruksi_tambahan',
+        'alasan_penundaan',
+        'catatan_revisi',
         'progres_persen',
-        'status_tugas'
+        'status_tugas',
     ];
 
     // Relasi ke Laporan
@@ -36,5 +41,11 @@ class PenugasanPekerja extends Model
     public function admin()
     {
         return $this->belongsTo(User::class, 'id_admin_bidang');
+    }
+
+    // Relasi ke bukti progres yang diunggah pekerja
+    public function buktiProgres()
+    {
+        return $this->hasMany(BuktiProgresPekerja::class, 'id_penugasan');
     }
 }

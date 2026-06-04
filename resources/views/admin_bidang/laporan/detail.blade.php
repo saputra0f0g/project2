@@ -189,61 +189,178 @@
 
         <div class="lg:col-span-1 animasi-masuk delay-3">
 
-            @if($laporan->status == 'selesai' || $laporan->status == 'terkendala')
+            @if($laporan->status === 'selesai')
+                {{-- LAPORAN SUDAH SELESAI --}}
                 <div class="bg-green-600 rounded-t-2xl p-5 text-white shadow-md relative overflow-hidden">
                     <div class="absolute -right-4 -top-4 opacity-10"><i class="fas fa-check-double text-8xl"></i></div>
-                    <h3 class="text-sm font-bold flex items-center relative z-10"><i class="fas fa-clipboard-check mr-2"></i> Formulir Konfirmasi Pekerjaan</h3>
-                    <p class="text-[10px] text-green-200 mt-1 uppercase tracking-wider relative z-10">Validasi Hasil Pekerjaan UPTD</p>
+                    <h3 class="text-sm font-bold flex items-center relative z-10"><i class="fas fa-check-circle mr-2"></i> Laporan Selesai</h3>
+                    <p class="text-[10px] text-green-200 mt-1 uppercase tracking-wider relative z-10">Sudah Terverifikasi</p>
+                </div>
+                <div class="bg-white border border-gray-100 border-t-0 rounded-b-2xl shadow-sm p-6 text-center">
+                    <div class="w-16 h-16 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-100">
+                        <i class="fas fa-check-double text-2xl"></i>
+                    </div>
+                    <h4 class="font-extrabold text-gray-800 text-sm mb-1">Perbaikan Selesai & Disetujui</h4>
+                    <p class="text-xs text-gray-500 leading-relaxed mb-4">Laporan ini telah selesai diperbaiki oleh Tim UPTD dan telah diverifikasi oleh Admin Bidang.</p>
+                    
+                    @if($laporan->penugasan && $laporan->penugasan->buktiProgres->isNotEmpty())
+                        <div class="text-left mt-4 pt-4 border-t border-gray-100">
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Foto Hasil Akhir</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                @foreach($laporan->penugasan->buktiProgres as $bukti)
+                                    @php
+                                        $urlBukti = \Illuminate\Support\Str::startsWith($bukti->file_path, ['http://', 'https://']) ? $bukti->file_path : asset('storage/' . $bukti->file_path);
+                                    @endphp
+                                    <div class="aspect-video rounded-lg overflow-hidden border border-gray-200 bg-gray-50 cursor-pointer" onclick="openLightbox('{{ $urlBukti }}', 'image')">
+                                        <img src="{{ $urlBukti }}" class="w-full h-full object-cover">
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+                </div>
+
+            @elseif($laporan->status === 'ditolak')
+                {{-- LAPORAN DITOLAK --}}
+                <div class="bg-red-600 rounded-t-2xl p-5 text-white shadow-md relative overflow-hidden">
+                    <div class="absolute -right-4 -top-4 opacity-10"><i class="fas fa-ban text-8xl"></i></div>
+                    <h3 class="text-sm font-bold flex items-center relative z-10"><i class="fas fa-times-circle mr-2"></i> Laporan Ditolak</h3>
+                    <p class="text-[10px] text-red-200 mt-1 uppercase tracking-wider relative z-10">Telah Ditutup</p>
+                </div>
+                <div class="bg-white border border-gray-100 border-t-0 rounded-b-2xl shadow-sm p-6">
+                    <div class="text-center mb-4">
+                        <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-3 border border-red-100">
+                            <i class="fas fa-ban text-2xl"></i>
+                        </div>
+                        <h4 class="font-extrabold text-gray-800 text-sm mb-1">Laporan Ditutup / Ditolak</h4>
+                        <p class="text-xs text-gray-500">Aduan ini ditolak atau dinyatakan tidak valid saat validasi survei.</p>
+                    </div>
+                    @if($laporan->alasan_penolakan)
+                        <div class="p-3 bg-red-50/50 rounded-lg border border-red-100 text-xs text-red-800 font-medium">
+                            <p class="font-bold mb-1 uppercase tracking-wider text-[9px]">Alasan Penolakan:</p>
+                            <p class="italic leading-relaxed">"{{ $laporan->alasan_penolakan }}"</p>
+                        </div>
+                    @endif
+                </div>
+
+            @elseif($laporan->status === 'menunggu_validasi' && $laporan->penugasan && $laporan->penugasan->status_tugas === 'survei_selesai')
+                {{-- VALIDASI SURVEY --}}
+                <div class="bg-yellow-600 rounded-t-2xl p-5 text-white shadow-md relative overflow-hidden">
+                    <div class="absolute -right-4 -top-4 opacity-10"><i class="fas fa-clipboard-list text-8xl"></i></div>
+                    <h3 class="text-sm font-bold flex items-center relative z-10"><i class="fas fa-search-location mr-2"></i> Hasil Survei Lapangan</h3>
+                    <p class="text-[10px] text-yellow-200 mt-1 uppercase tracking-wider relative z-10">Validasi Temuan UPTD</p>
                 </div>
 
                 <div class="bg-white border border-gray-100 border-t-0 rounded-b-2xl shadow-sm p-6">
-                    <div class="mb-5">
-                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Tim Pelaksana / Pekerja UPTD</label>
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Status Validitas Temuan</label>
+                        @if($laporan->penugasan->status_validitas_survei === 'valid')
+                            <span class="inline-flex items-center px-2.5 py-1.5 rounded-md text-xs font-bold bg-green-50 text-green-700 border border-green-200">
+                                <i class="fas fa-check-circle mr-1.5"></i> VALID / SESUAI ADUAN
+                            </span>
+                        @else
+                            <span class="inline-flex items-center px-2.5 py-1.5 rounded-md text-xs font-bold bg-red-50 text-red-700 border border-red-200">
+                                <i class="fas fa-times-circle mr-1.5"></i> TIDAK VALID / HOAKS
+                            </span>
+                        @endif
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Deskripsi Temuan Lapangan</label>
+                        <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 text-xs text-gray-700 font-medium whitespace-pre-wrap leading-relaxed">
+                            {{ $laporan->penugasan->deskripsi_temuan_survei }}
+                        </div>
+                    </div>
+
+                    @if($laporan->penugasan->rekomendasi_survei)
+                        <div class="mb-5">
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Rekomendasi Tindakan</label>
+                            <div class="p-3 bg-blue-50/50 rounded-lg border border-blue-100 text-xs text-blue-800 font-medium whitespace-pre-wrap leading-relaxed">
+                                {{ $laporan->penugasan->rekomendasi_survei }}
+                            </div>
+                        </div>
+                    @endif
+
+                    <form id="form-validasi-survei" action="{{ route('admin_bidang.laporan.validasi_survei', $laporan->id) }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="aksi" id="survei-aksi">
+                        <input type="hidden" name="catatan" id="survei-catatan">
+
+                        <button type="button" onclick="prosesValidasiSurvei('acc')" class="w-full mb-3 bg-green-500 hover:bg-green-600 text-white font-extrabold text-sm py-3 rounded-lg shadow-sm transition transform hover:-translate-y-0.5 flex justify-center items-center">
+                            Setujui & Lanjutkan Perbaikan <i class="fas fa-check-circle ml-2"></i>
+                        </button>
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <button type="button" onclick="prosesValidasiSurvei('tunda')" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold text-xs py-2.5 rounded-lg transition transform hover:-translate-y-0.5 flex justify-center items-center shadow-sm">
+                                Tunda Perbaikan <i class="fas fa-pause-circle ml-1.5"></i>
+                            </button>
+                            <button type="button" onclick="prosesValidasiSurvei('tolak')" class="bg-red-500 hover:bg-red-600 text-white font-bold text-xs py-2.5 rounded-lg transition transform hover:-translate-y-0.5 flex justify-center items-center shadow-sm">
+                                Tolak Laporan <i class="fas fa-ban ml-1.5"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+            @elseif($laporan->status === 'menunggu_validasi' || ($laporan->penugasan && $laporan->penugasan->status_tugas === 'menunggu_review'))
+                {{-- VALIDASI PROGRES AKHIR --}}
+                <div class="bg-green-600 rounded-t-2xl p-5 text-white shadow-md relative overflow-hidden">
+                    <div class="absolute -right-4 -top-4 opacity-10"><i class="fas fa-check-double text-8xl"></i></div>
+                    <h3 class="text-sm font-bold flex items-center relative z-10"><i class="fas fa-clipboard-check mr-2"></i> Konfirmasi Hasil Pekerjaan</h3>
+                    <p class="text-[10px] text-green-200 mt-1 uppercase tracking-wider relative z-10">Pekerjaan Selesai 100%</p>
+                </div>
+
+                <div class="bg-white border border-gray-100 border-t-0 rounded-b-2xl shadow-sm p-6">
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Tim UPTD Pelaksana</label>
                         <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-800 font-semibold">
-                            <i class="fas fa-hard-hat text-gray-400 mr-2"></i> {{ $laporan->pekerja->nama_lengkap ?? 'Nama Pekerja Tidak Ditemukan' }}
+                            <i class="fas fa-hard-hat text-gray-400 mr-2"></i> {{ $laporan->pekerja->nama_lengkap ?? 'Tim UPTD' }}
                         </div>
                     </div>
 
+                    {{-- Menampilkan Bukti Progres yang Diunggah Pekerja --}}
                     <div class="mb-5">
-                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Keterangan Hasil Pekerjaan</label>
-                        <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-700 leading-relaxed min-h-[80px]">
-                            {{ $laporan->keterangan_hasil_pekerja ?? 'Pekerja tidak memberikan keterangan.' }}
-                        </div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Foto / Video Bukti Progres Lapangan</label>
+                        @if($laporan->penugasan && $laporan->penugasan->buktiProgres->isNotEmpty())
+                            <div class="grid grid-cols-2 gap-2">
+                                @foreach($laporan->penugasan->buktiProgres as $bukti)
+                                    @php
+                                        $urlBukti = \Illuminate\Support\Str::startsWith($bukti->file_path, ['http://', 'https://']) ? $bukti->file_path : asset('storage/' . $bukti->file_path);
+                                    @endphp
+                                    <div class="relative group aspect-video rounded-lg overflow-hidden border border-gray-200 shadow-sm cursor-pointer bg-gray-50" onclick="openLightbox('{{ $urlBukti }}', 'image')">
+                                        <img src="{{ $urlBukti }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                        @if($bukti->keterangan)
+                                            <div class="absolute bottom-0 inset-x-0 bg-black/60 px-2 py-1 text-[8px] text-white truncate font-medium" title="{{ $bukti->keterangan }}">
+                                                {{ $bukti->keterangan }}
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="p-4 text-center border border-dashed border-gray-300 rounded-lg text-gray-400 text-xs font-medium">
+                                Pekerja tidak mengunggah file bukti progres.
+                            </div>
+                        @endif
                     </div>
 
-                    <div class="mb-6">
-                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Foto/Video Progres</label>
-                        <div class="grid grid-cols-2 gap-3">
-                            @if(isset($laporan->foto_progres) && $laporan->foto_progres)
-                                @php $urlFotoProgres = \Illuminate\Support\Str::startsWith($laporan->foto_progres, ['http://', 'https://']) ? $laporan->foto_progres : asset('storage/' . $laporan->foto_progres); @endphp
-                                <div onclick="openLightbox('{{ $urlFotoProgres }}', 'image')" class="aspect-video rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shadow-sm cursor-pointer relative group">
-                                    <img src="{{ $urlFotoProgres }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="Foto Progres">
-                                </div>
-                            @else
-                                <div class="col-span-2 p-4 text-center border-2 border-dashed border-gray-300 rounded-lg text-gray-400 text-xs font-medium">
-                                    Tidak ada lampiran progres
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-
-                    <form action="{{ route('admin_bidang.laporan.setujui_progres', $laporan->id) ?? '#' }}" method="POST" class="mb-3">
+                    <form action="{{ route('admin_bidang.laporan.setujui_progres', $laporan->id) }}" method="POST" class="mb-3">
                         @csrf
                         <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-extrabold text-sm py-3.5 rounded-lg shadow-sm transition transform hover:-translate-y-0.5 flex justify-center items-center">
-                            Setujui Progres <i class="fas fa-check-circle ml-2"></i>
+                            Setujui Pekerjaan Selesai <i class="fas fa-check-circle ml-2"></i>
                         </button>
                     </form>
 
-                    <form id="form-tolak-progres" action="{{ route('admin_bidang.laporan.tolak_progres', $laporan->id) ?? '#' }}" method="POST">
+                    <form id="form-tolak-progres" action="{{ route('admin_bidang.laporan.tolak_progres', $laporan->id) }}" method="POST">
                         @csrf
                         <input type="hidden" name="alasan_penolakan" id="alasan_penolakan_progres">
                         <button type="button" onclick="konfirmasiTolakProgres()" class="w-full bg-red-50 hover:bg-red-500 text-red-600 hover:text-white border border-red-200 font-extrabold text-sm py-3 rounded-lg transition transform hover:-translate-y-0.5 flex justify-center items-center shadow-sm">
-                            Tolak Progres (Minta Revisi) <i class="fas fa-times-circle ml-2"></i>
+                            Tolak & Minta Revisi UPTD <i class="fas fa-times-circle ml-2"></i>
                         </button>
                     </form>
                 </div>
 
             @else
+                {{-- FORMULIR DISPOSISI NORMAL --}}
                 <div class="bg-[#1E3A8A] rounded-t-2xl p-5 text-white shadow-md relative overflow-hidden">
                     <div class="absolute -right-4 -top-4 opacity-10"><i class="fas fa-file-signature text-8xl"></i></div>
                     <h3 class="text-sm font-bold flex items-center relative z-10"><i class="fas fa-clipboard-check mr-2"></i> Formulir Disposisi UPTD</h3>
@@ -581,6 +698,64 @@
                 document.getElementById('alasan_penolakan_progres').value = result.value;
                 Swal.fire({ title: 'Memproses...', allowOutsideClick: false, showConfirmButton: false, didOpen: () => { Swal.showLoading(); }});
                 document.getElementById('form-tolak-progres').submit();
+            }
+        });
+    }
+
+    // 5. FUNGSI VALIDASI HASIL SURVEI
+    function prosesValidasiSurvei(aksi) {
+        let title = '';
+        let text = '';
+        let confirmText = '';
+        let confirmColor = '';
+        let showInput = false;
+
+        if (aksi === 'acc') {
+            title = 'Setujui Hasil Survei?';
+            text = 'Laporan akan dinyatakan VALID dan dilanjutkan ke proses perbaikan fisik oleh UPTD.';
+            confirmText = 'Ya, Setujui!';
+            confirmColor = '#10b981';
+        } else if (aksi === 'tunda') {
+            title = 'Tunda Pengerjaan?';
+            text = 'Berikan alasan penundaan pengerjaan (anggaran, prioritas lain, dll):';
+            confirmText = 'Ya, Tunda';
+            confirmColor = '#f59e0b';
+            showInput = true;
+        } else {
+            title = 'Tolak Laporan ini?';
+            text = 'Laporan akan dinyatakan TIDAK VALID (hoaks / tidak relevan) dan ditutup. Berikan alasan:';
+            confirmText = 'Ya, Tolak';
+            confirmColor = '#ef4444';
+            showInput = true;
+        }
+
+        Swal.fire({
+            title: title,
+            text: showInput ? null : text,
+            html: showInput ? null : text,
+            input: showInput ? 'textarea' : null,
+            inputPlaceholder: showInput ? 'Tuliskan alasan lengkap di sini...' : null,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: confirmColor,
+            cancelButtonColor: '#9ca3af',
+            confirmButtonText: confirmText,
+            cancelButtonText: 'Batal',
+            reverseButtons: true,
+            customClass: { popup: 'rounded-2xl shadow-xl' },
+            inputValidator: (value) => {
+                if (showInput && !value) {
+                    return 'Alasan wajib diisi!';
+                }
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('survei-aksi').value = aksi;
+                if (showInput) {
+                    document.getElementById('survei-catatan').value = result.value;
+                }
+                Swal.fire({ title: 'Memproses...', allowOutsideClick: false, showConfirmButton: false, didOpen: () => { Swal.showLoading(); }});
+                document.getElementById('form-validasi-survei').submit();
             }
         });
     }

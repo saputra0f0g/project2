@@ -15,9 +15,11 @@ class TugasController extends Controller
     {
         $user = Auth::user();
 
-        // Ambil tugas yang diberikan khusus untuk pekerja ini
+        // Ambil HANYA tugas yang diberikan khusus untuk pekerja ini (filter ketat by id_pekerja).
+        // Kecualikan tugas yang sudah dibatalkan admin agar tidak muncul di beranda.
         $daftar_tugas = PenugasanPekerja::with(['laporan.pelapor', 'admin'])
             ->where('id_pekerja', $user->id)
+            ->whereNotIn('status_tugas', ['dibatalkan'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -29,28 +31,36 @@ class TugasController extends Controller
     {
         $request->validate([
             'progres_persen' => 'required|numeric|min:0|max:100',
-            'status_tugas' => 'required'
+            'status_tugas'   => 'required|in:dikerjakan,terkendala,selesai',
         ]);
 
-        $penugasan = PenugasanPekerja::findOrFail($id);
+        // Pastikan tugas ini benar-benar milik pekerja yang sedang login (security check)
+        $penugasan = PenugasanPekerja::where('id', $id)
+            ->where('id_pekerja', Auth::id())
+            ->firstOrFail();
+
+        $statusTugas = $request->status_tugas;
+        $progres = $request->progres_persen;
+
+        // Pekerja tidak boleh langsung menyelesaikan tugas sendiri (harus via validasi Admin Bidang)
+        if ($progres == 100 || $statusTugas === 'selesai') {
+            $statusTugas = 'menunggu_review';
+            $progres = 100;
+        }
+
         $penugasan->update([
-            'progres_persen' => $request->progres_persen,
-            'status_tugas' => $request->status_tugas
+            'progres_persen' => $progres,
+            'status_tugas'   => $statusTugas,
         ]);
 
-        // Jika progres sudah 100% atau status Selesai, update juga laporan utamanya
-        if ($request->progres_persen == 100 || $request->status_tugas == 'selesai') {
-            $penugasan->update(['status_tugas' => 'selesai', 'progres_persen' => 100]);
-
-            $laporan = LaporanKeluhan::find($penugasan->id_laporan);
-            if($laporan) {
-                $laporan->update(['status' => 'selesai']);
-            }
-        } elseif ($request->status_tugas == 'terkendala') {
-            // Jika terkendala di lapangan
-            $laporan = LaporanKeluhan::find($penugasan->id_laporan);
-            if($laporan) {
+        $laporan = LaporanKeluhan::find($penugasan->id_laporan);
+        if ($laporan) {
+            if ($statusTugas === 'menunggu_review') {
+                $laporan->update(['status' => 'menunggu_validasi']);
+            } elseif ($statusTugas === 'terkendala') {
                 $laporan->update(['status' => 'terkendala']);
+            } elseif ($statusTugas === 'dikerjakan') {
+                $laporan->update(['status' => 'proses']);
             }
         }
 
