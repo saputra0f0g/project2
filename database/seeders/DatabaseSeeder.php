@@ -11,10 +11,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Urutan sangat penting: Bidang dulu, baru User!
+        // Urutan penting: Bidang & User harus ada sebelum Laporan
         $this->call([
-            BidangSeeder::class,
-            UserSeeder::class,
+            BidangSeeder::class,       // 1. Buat bidang PUPR
+            UserSeeder::class,         // 2. Buat admin universal + staf awal
+            LaporanLengkapSeeder::class, // 3. Buat 55 laporan (5 bidang × 11 status)
         ]);
     }
 }

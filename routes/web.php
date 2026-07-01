@@ -16,7 +16,13 @@ use App\Http\Controllers\Pekerja\TugasController as TugasPekerja;
 
 
 
-Route::get('/', [AutentikasiController::class, 'tampilLogin'])->name('login');
+// Halaman Publik — Landing Page
+Route::get('/', function () {
+    return view('landing');
+})->name('landing');
+
+// Halaman Login Internal Staff
+Route::get('/login', [AutentikasiController::class, 'tampilLogin'])->name('login');
 Route::post('/login/proses', [AutentikasiController::class, 'prosesLogin'])->name('login.proses');
 
 
