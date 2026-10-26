@@ -45,7 +45,7 @@
                 {{-- Meta --}}
                 <p class="text-blue-200 text-xs font-semibold mb-5">
                     <i class="fas fa-info-circle mr-1"></i>
-                    Versi 1.0 &nbsp;|&nbsp; Ukuran: ~25 MB &nbsp;|&nbsp; Khusus Android 8.0+
+                    Versi 2.0 &nbsp;|&nbsp; Ukuran: ~25 MB &nbsp;|&nbsp; Khusus Android 8.0+
                 </p>
             </div>
 
@@ -57,7 +57,7 @@
 
                     {{-- Screenshot mockup --}}
                     <div class="relative phone-shadow">
-                        <img src="{{ asset('gambar/mockup.png') }}"
+                        <img src="{{ asset('gambar/screenshot-app.png') }}"
                              alt="Screenshot Aplikasi SIGAP PUPR"
                              class="w-[260px] sm:w-[272px] rounded-[2.8rem] shadow-2xl border-[5px] border-gray-700">
                     </div>

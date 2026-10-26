@@ -8,10 +8,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * UserController — Manajemen profil pengguna via API.
+ * Berlaku untuk: Masyarakat & Admin Jalan.
+ */
 class UserController extends Controller
 {
     /**
-     * Ambil profil user yang login.
+     * GET /api/user/profil
+     * Ambil profil user yang sedang login.
      */
     public function getProfil(Request $request)
     {
@@ -19,6 +24,7 @@ class UserController extends Controller
     }
 
     /**
+     * PUT /api/user/profil
      * Update nama & nomor HP.
      */
     public function updateProfil(Request $request)
@@ -44,16 +50,17 @@ class UserController extends Controller
     }
 
     /**
+     * POST /api/user/foto-profil
      * Upload / ganti foto profil.
      */
     public function uploadFoto(Request $request)
     {
         $request->validate([
-            'foto' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+            'foto' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
         ], [
             'foto.required' => 'File foto wajib diunggah.',
             'foto.image'    => 'File harus berupa gambar.',
-            'foto.mimes'    => 'Format foto harus JPG, JPEG, atau PNG.',
+            'foto.mimes'    => 'Format foto harus JPG, JPEG, PNG, atau WebP.',
             'foto.max'      => 'Ukuran foto maksimal 2 MB.',
         ]);
 
@@ -74,6 +81,7 @@ class UserController extends Controller
     }
 
     /**
+     * PUT /api/user/password
      * Ganti password — memerlukan password saat ini.
      */
     public function gantiPassword(Request $request)
@@ -101,25 +109,8 @@ class UserController extends Controller
         return response()->json(['message' => 'Password berhasil diubah.']);
     }
 
-    /**
-     * Daftar pegawai — khusus admin_universal.
-     */
-    public function getDaftarPegawai(Request $request)
-    {
-        $user = $request->user();
-        if ($user->peran !== 'admin_universal') {
-            return response()->json(['message' => 'Akses ditolak.'], 403);
-        }
-
-        $pegawai = User::whereIn('peran', ['pekerja_bidang', 'admin_bidang', 'admin_universal'])
-                       ->select('id', 'nama_lengkap', 'username', 'email', 'nomor_hp', 'peran', 'foto_profil', 'id_bidang')
-                       ->get()
-                       ->map(fn($u) => $this->formatUser($u));
-
-        return response()->json($pegawai);
-    }
-
     // ─── HELPER ───────────────────────────────────────────────────────────────
+
     private function formatUser(User $user): array
     {
         return [
@@ -128,18 +119,11 @@ class UserController extends Controller
             'username' => $user->username,
             'email'    => $user->email,
             'phone'    => $user->nomor_hp,
-            'role'     => match ($user->peran) {
-                'masyarakat'      => 'masyarakat',
-                'pekerja_bidang'  => 'pegawai',
-                'admin_bidang'    => 'pegawai',
-                'admin_universal' => 'pegawai',
-                default           => 'masyarakat',
-            },
-            'peran'    => $user->peran,
+            'role'     => $user->peran, // 'masyarakat' | 'admin_jalan'
             'foto_url' => $user->foto_profil
-                          ? asset('storage/' . $user->foto_profil)
-                          : null,
-            'bidang_id' => $user->id_bidang,
+                           ? asset('storage/' . $user->foto_profil)
+                           : null,
+            'status'   => $user->status_akun,
         ];
     }
 }

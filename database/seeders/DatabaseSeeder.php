@@ -7,15 +7,17 @@ use Illuminate\Database\Seeder;
 class DatabaseSeeder extends Seeder
 {
     /**
-     * Seed the application's database.
+     * SIGAP — Seed database (Fokus: Laporan Infrastruktur Jalan)
+     *
+     * Urutan seeder:
+     *   1. UserSeeder          → buat akun admin_jalan & masyarakat test
+     *   2. LaporanJalanSeeder  → buat data laporan contoh (opsional)
      */
     public function run(): void
     {
-        // Urutan penting: Bidang & User harus ada sebelum Laporan
         $this->call([
-            BidangSeeder::class,       // 1. Buat bidang PUPR
-            UserSeeder::class,         // 2. Buat admin universal + staf awal
-            LaporanLengkapSeeder::class, // 3. Buat 55 laporan (5 bidang × 11 status)
+            UserSeeder::class,         // 1. Akun admin jalan & masyarakat
+            LaporanJalanSeeder::class, // 2. Data dummy laporan kerusakan jalan
         ]);
     }
 }

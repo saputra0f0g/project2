@@ -54,10 +54,6 @@
 
             {{-- ── Right: Partners ── --}}
             <div class="reveal">
-                <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-8 text-center flex items-center justify-center gap-2">
-                    <i class="fas fa-handshake" style="color:#F59E0B"></i>
-                    Didukung Oleh
-                </p>
 
                 <div class="space-y-5">
 
@@ -77,7 +73,23 @@
                         </div>
                     </div>
 
-                    {{-- Partner 2: AmoebIT --}}
+                    {{-- Partner 2: Subang Ngabret --}}
+                    <div class="flex items-center gap-5 p-6 rounded-2xl border-2 border-gray-100 hover:border-blue-200 hover:shadow-xl transition-all duration-300 group">
+                        <div class="w-20 h-20 bg-sky-soft rounded-2xl flex items-center justify-center flex-shrink-0 border border-blue-100 group-hover:scale-105 transition-transform">
+                            <img src="{{ asset('gambar/subang-ngabret.png') }}"
+                                 alt="Logo Subang Ngabret"
+                                 class="w-14 h-14 object-contain">
+                        </div>
+                        <div>
+                            <p class="font-black text-lg leading-tight" style="color:#0F2D6B">Subang Ngabret</p>
+                            <p class="text-gray-500 text-sm font-semibold">Subang</p>
+                            <p class="text-gray-400 text-xs mt-1 leading-relaxed">
+                                Subang bergerak atau berlari kencang untuk mewujudkan pelayanan publik yang cepat, responsif, dan transparan    
+                            </p>
+                        </div>
+                    </div>
+
+                    {{-- Partner 3: AmoebIT --}}
                     <div class="flex items-center gap-5 p-6 rounded-2xl border-2 border-gray-100 hover:border-yellow-200 hover:shadow-xl transition-all duration-300 group">
                         <div class="w-20 h-20 rounded-2xl flex items-center justify-center flex-shrink-0 border border-yellow-100 group-hover:scale-105 transition-transform"
                              style="background:#FFFBEB;">
@@ -99,7 +111,7 @@
 
                 {{-- Tagline --}}
                 <div class="mt-6 text-center p-4 rounded-2xl" style="background:#EFF6FF;">
-                    <img src="{{ asset('gambar/puprsigap.png') }}" alt="SIGAP PUPR" class="h-8 object-contain mx-auto mb-2">
+                    <img src="{{ asset('gambar/subang-ngabret.png') }}" alt="SIGAP PUPR" class="h-24 object-contain mx-auto mb-2">
                     <p class="text-xs font-semibold" style="color:#0F2D6B">
                         "Bersama Membangun Subang yang Lebih Baik"
                     </p>

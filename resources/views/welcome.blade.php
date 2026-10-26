@@ -35,11 +35,11 @@
             box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
         }
 
-        /* Gambar latar kantor PUPR lokal */
+        /* Lapisan gambar latar kantor PUPR */
         .bg-infrastruktur {
-            background-image: url('{{ asset("gambar/kantor.jpg") }}');
             background-size: cover;
             background-position: center;
+            transition: opacity 1s ease-in-out;
         }
 
         /* Animasi CSS Murni agar pasti berjalan */
@@ -58,23 +58,26 @@
 
     <div class="flex flex-col md:flex-row w-full max-w-5xl bg-white shadow-2xl rounded-2xl overflow-hidden min-h-[580px] animasi-masuk">
 
-        <div class="hidden md:flex md:w-7/12 bg-infrastruktur relative flex-col justify-between p-12 overflow-hidden">
+        <div class="hidden md:flex md:w-7/12 relative flex-col justify-between p-12 overflow-hidden">
 
-            <div class="absolute inset-0 bg-[#1E3A8A]/85 transition-colors duration-700"></div>
+            <div id="latarSlideA" class="bg-infrastruktur absolute inset-0" aria-hidden="true"></div>
+            <div id="latarSlideB" class="bg-infrastruktur absolute inset-0 opacity-0" aria-hidden="true"></div>
+
+            <div class="absolute inset-0 bg-[#1E3A8A]/50 transition-colors duration-700 pointer-events-none"></div>
 
             <div class="relative z-10 w-full mt-8">
 
                 <div class="inline-flex items-center space-x-2 border border-white/30 rounded-full px-4 py-1.5 mb-8 w-max">
                     <i class="fas fa-shield-check text-blue-200 text-[11px]"></i>
-                    <span class="text-blue-100 text-[9px] font-bold tracking-widest uppercase">Sistem Informasi & Gerbang Administrasi</span>
+                    <span class="text-blue-100 text-[9px] font-bold tracking-widest uppercase">Dashboard Admin </span>
                 </div>
 
                 <h2 class="text-white text-4xl lg:text-5xl font-extrabold mb-6 leading-tight tracking-tight">
-                    Transformasi Digital<br>Infrastruktur Negeri
+                    Kelola Laporan<br>Infrastruktur 
                 </h2>
 
                 <p class="text-blue-100 text-sm font-medium leading-relaxed opacity-90 max-w-md">
-                    Akses portal manajemen terpadu bagi Admin Universal dan Bidang untuk monitoring, pelaporan, dan koordinasi proyek infrastruktur Kabupaten Subang.
+                    Portal khusus Admin Dinas PUPR Kabupaten Subang untuk memverifikasi, memantau, dan menindaklanjuti laporan kerusakan jalan dari masyarakat.
                 </p>
             </div>
 
@@ -92,10 +95,24 @@
 
         <div class="w-full md:w-5/12 flex flex-col justify-center p-8 lg:p-12 bg-white">
 
-            <div class="mb-8">
-                <h1 class="text-2xl font-extrabold text-gray-800 mb-1.5">Portal Admin Masuk</h1>
-                <p class="text-gray-500 text-[11px] font-medium">Silakan masuk menggunakan kredensial departemen Anda.</p>
+            <div class="mb-6">
+                <a href="{{ route('landing') }}" class="inline-flex items-center text-[11px] font-bold text-pupr-blue hover:text-blue-700 transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Kembali
+                </a>
             </div>
+
+            <div class="mb-8">
+                <h1 class="text-2xl font-extrabold text-gray-800 mb-1.5">Masuk Admin </h1>
+                <p class="text-gray-500 text-[11px] font-medium">Khusus petugas pengelola laporan.</p>
+            </div>
+
+            @if(session('sukses'))
+                <div class="bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 p-3 mb-6 rounded-r-lg text-xs font-bold flex items-center">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <span>{{ session('sukses') }}</span>
+                </div>
+            @endif
 
             @if(session('error'))
                 <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-3 mb-6 rounded-r-lg text-xs font-bold flex items-center shadow-sm animate-pulse">
@@ -113,7 +130,7 @@
                         <span class="pl-4 text-gray-400">
                             <i class="far fa-id-badge text-sm"></i>
                         </span>
-                        <input type="text" name="username" placeholder="Masukkan Nama Pengguna Anda"
+                        <input type="text" name="username" value="{{ old('username') }}" placeholder="Masukkan nama pengguna"
                             class="w-full pl-3 pr-4 py-3 bg-transparent text-xs font-semibold text-gray-800 outline-none"
                             required autofocus>
                     </div>
@@ -138,8 +155,8 @@
 
                 <div class="flex items-center pt-1">
                     <label class="flex items-center cursor-pointer group">
-                        <input type="checkbox" class="rounded border-gray-300 text-pupr-yellow focus:ring-pupr-yellow h-3.5 w-3.5 cursor-pointer">
-                        <span class="ml-2 text-[10px] font-semibold text-gray-500 group-hover:text-gray-700 transition select-none">Ingat perangkat ini untuk 30 hari</span>
+                        <input type="checkbox" name="ingat" value="1" class="rounded border-gray-300 text-pupr-yellow focus:ring-pupr-yellow h-3.5 w-3.5 cursor-pointer">
+                        <span class="ml-2 text-[10px] font-semibold text-gray-500 group-hover:text-gray-700 transition select-none">Ingat perangkat ini</span>
                     </label>
                 </div>
 
@@ -159,6 +176,44 @@
     </div>
 
     <script>
+        async function mulaiCarouselLatar() {
+            // Simpan tiga foto tambahan di public/gambar dengan nama berikut.
+            const fotoLatar = [
+                @json(asset('gambar/kantor.jpg')),
+                @json(asset('gambar/kantor-2.jpg')),
+                @json(asset('gambar/kantor-3.jpg')),
+                @json(asset('gambar/kantor-4.jpg')),
+            ];
+            const fotoTersedia = (await Promise.all(fotoLatar.map((url) => new Promise((resolve) => {
+                const gambar = new Image();
+                gambar.onload = () => resolve(url);
+                gambar.onerror = () => resolve(null);
+                gambar.src = url;
+            })))).filter(Boolean);
+
+            if (fotoTersedia.length < 2) return;
+
+            const slideA = document.getElementById('latarSlideA');
+            const slideB = document.getElementById('latarSlideB');
+            let slideAktif = slideA;
+            let indeksFoto = 0;
+
+            slideA.style.backgroundImage = `url("${fotoTersedia[0]}")`;
+
+            window.setInterval(() => {
+                indeksFoto = (indeksFoto + 1) % fotoTersedia.length;
+                const slideBerikutnya = slideAktif === slideA ? slideB : slideA;
+                slideBerikutnya.style.backgroundImage = `url("${fotoTersedia[indeksFoto]}")`;
+                slideBerikutnya.classList.remove('opacity-0');
+                slideBerikutnya.classList.add('opacity-100');
+                slideAktif.classList.remove('opacity-100');
+                slideAktif.classList.add('opacity-0');
+                slideAktif = slideBerikutnya;
+            }, 5000);
+        }
+
+        mulaiCarouselLatar();
+
         function togglePassword() {
             const passwordInput = document.getElementById('inputKataSandi');
             const eyeIcon = document.getElementById('ikonMata');

@@ -6,36 +6,72 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use NotificationChannels\WebPush\HasPushSubscriptions;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, HasPushSubscriptions, Notifiable;
 
+    /**
+     * Kolom yang dapat diisi secara massal.
+     * Role disederhanakan: hanya 'masyarakat' & 'admin_jalan'.
+     */
     protected $fillable = [
-        'nama_lengkap', 'username', 'email', 'nomor_hp',
-        'password', 'peran', 'id_bidang', 'status_akun',
-        'foto_profil', 'terakhir_login',
-        'otp_code', 'otp_expires_at', // untuk reset password mobile
-        'kantor_wilayah',
+        'nama_lengkap',
+        'username',
+        'email',
+        'nomor_hp',
+        'password',
+        'peran',          // 'masyarakat' | 'admin_jalan'
+        'status_akun',    // 'aktif' | 'non-aktif'
+        'foto_profil',
+        'terakhir_login',
     ];
 
     protected $hidden = [
-        'password', 'remember_token', 'otp_code',
+        'password', 'remember_token',
     ];
 
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
-            'otp_expires_at'    => 'datetime',
-            'terakhir_login'    => 'datetime',
+            'password' => 'hashed',
+            'terakhir_login' => 'datetime',
         ];
     }
 
-    // Relasi ke tabel bidang
-    public function bidang()
+    // ─── Scopes ──────────────────────────────────────────────────────────────
+
+    /** Hanya user masyarakat */
+    public function scopeMasyarakat($query)
     {
-        return $this->belongsTo(Bidang::class, 'id_bidang', 'id');
+        return $query->where('peran', 'masyarakat');
+    }
+
+    /** Hanya admin jalan */
+    public function scopeAdminJalan($query)
+    {
+        return $query->where('peran', 'admin_jalan');
+    }
+
+    // ─── Helper ──────────────────────────────────────────────────────────────
+
+    public function isAdminJalan(): bool
+    {
+        return $this->peran === 'admin_jalan';
+    }
+
+    public function isMasyarakat(): bool
+    {
+        return $this->peran === 'masyarakat';
+    }
+
+    // ─── Relasi ──────────────────────────────────────────────────────────────
+
+    /** Semua laporan yang dibuat oleh user ini */
+    public function laporan()
+    {
+        return $this->hasMany(LaporanKeluhan::class, 'id_pelapor');
     }
 }

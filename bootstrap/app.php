@@ -20,6 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(prepend: [
             HandleCors::class,
         ]);
+
+        $middleware->alias([
+            'admin_jalan' => \App\Http\Middleware\PastikanAdminJalan::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

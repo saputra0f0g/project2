@@ -7,13 +7,10 @@
 
             {{-- ── Logo ── --}}
             <a href="#beranda" class="flex items-center gap-3 group flex-shrink-0">
-                <img src="{{ asset('gambar/puprlogo.png') }}"
-                     alt="Logo PUPR"
-                     class="h-10 w-10 object-contain group-hover:scale-105 transition-transform duration-300">
-                <div class="leading-tight">
-                    <span class="text-white font-black text-lg tracking-wide block">SIGAP</span>
-                    <span class="text-blue-300 text-[11px] font-semibold tracking-widest uppercase">PUPR Kab. Subang</span>
-                </div>
+                <img src="{{ asset('gambar/subang-ngabret.png') }}"
+                     alt="Logo Subang Ngabret"
+                     class="h-32 w-32 object-contain group-hover:scale-105 transition-transform duration-300">
+                
             </a>
 
             {{-- ── Desktop Nav ── --}}

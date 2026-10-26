@@ -1,24 +1,19 @@
 ﻿# SIGAP Web
 
-A Laravel 12-based complaint and task management system for public works and field operations. Project ini digunakan untuk menangani pelaporan keluhan, manajemen bidang, penugasan pekerja lapangan, notifikasi internal, dan ekspor data.
+A Laravel 12 backend dan dashboard Admin Jalan untuk aplikasi SIGAP pelaporan kerusakan infrastruktur jalan.
 
 ## Fitur Utama
 
-- Autentikasi pengguna dengan peran: `admin_universal`, `admin_bidang`, dan `pekerja_bidang`
-- Dashboard pusat untuk manajemen bidang, pengguna, laporan, statistik, dan notifikasi
-- Pengelolaan laporan keluhan dengan status, tampilan detail, disposisi/tolak, dan cetak detail PDF
-- Ekspor data ke CSV/PDF/Excel untuk laporan dan bidang
-- Sistem notifikasi internal untuk admin dan admin bidang
-- Profil pengguna dengan pembaruan data dan foto profil
-- Pengelolaan bidang dengan status aktif/non-aktif
-- Admin bidang dapat menugaskan pekerja dan memantau progres tugas
-- Pekerja lapangan melihat tugas dan memperbarui status penyelesaian
+- Autentikasi Admin Jalan untuk dashboard web dan masyarakat melalui API mobile
+- Dashboard Admin Jalan untuk memantau laporan masuk
+- Detail laporan, pembaruan status, dan ekspor laporan ke CSV
+- API untuk autentikasi, profil masyarakat, statistik, dan pelaporan/riwayat laporan
+- Web Push Notification untuk memberi tahu Admin Jalan saat laporan baru masuk
 
 ## Struktur Peran
 
-- `admin_universal`: akses penuh ke seluruh modul, manajemen bidang, pengguna, laporan, statistik, dan notifikasi
-- `admin_bidang`: akses ke laporan bidang tertentu, detail laporan, penugasan pekerja, dan ekspor laporan bidang
-- `pekerja_bidang`: akses ke tugas lapangan, update progres tugas, dan penyelesaian penugasan
+- `admin_jalan`: mengakses dashboard web, memantau laporan, memperbarui status, dan mengatur notifikasi push
+- `masyarakat`: menggunakan aplikasi mobile untuk membuat dan memantau laporan serta mengelola profil
 
 ## Persyaratan
 
@@ -55,22 +50,34 @@ A Laravel 12-based complaint and task management system for public works and fie
 - Jalankan mode development Vite:
   - `npm run dev`
 
-## Akun Default untuk Pengujian
+## Web Push Notification Admin Jalan
 
-Akun berikut disediakan di `database/seeders/UserSeeder.php`:
+Web Push dikirim ke browser Admin Jalan yang telah mengaktifkan notifikasi. Push subscription disimpan per akun admin dan notifikasi dipicu setelah API laporan berhasil menyimpan laporan.
 
-- Admin Universal
-  - email: `admin@sigap.id`
-  - username: `admin_pusat`
-  - password: `password123`
-- Admin Bidang
-  - email: `binamarga@sigap.id`
-  - username: `admin_binamarga`
-  - password: `password123`
-- Pekerja Bidang
-  - email: `budi@sigap.id`
-  - username: `pekerja_uptd`
-  - password: `password123`
+1. Salin konfigurasi Web Push dan migrasi package:
+   - `php artisan vendor:publish --provider="NotificationChannels\WebPush\WebPushServiceProvider" --tag="migrations"`
+   - `php artisan vendor:publish --provider="NotificationChannels\WebPush\WebPushServiceProvider" --tag="config"`
+2. Buat VAPID keys dan jalankan migrasi:
+   - `php artisan webpush:vapid`
+   - `php artisan migrate`
+3. Pastikan `APP_URL` menggunakan HTTPS pada server publik dan atur `VAPID_SUBJECT` ke URL situs atau alamat `mailto:` yang valid. Simpan `VAPID_PRIVATE_KEY` dengan aman dan jangan ganti kunci setelah admin berlangganan.
+4. Login sebagai Admin Jalan melalui browser yang mendukung Web Push, buka dashboard, lalu tekan **Aktifkan Notifikasi** dan izinkan notifikasi. Push browser memerlukan HTTPS; `localhost` dapat digunakan untuk pengembangan.
+5. Saat laporan baru masuk melalui `POST /api/laporan`, browser admin yang terdaftar menerima notifikasi **Laporan Baru Masuk**. Tombol yang sama dapat digunakan untuk menonaktifkan notifikasi browser tersebut.
+
+Service worker tersedia di `public/sw.js`. Pastikan server web melayani berkas tersebut di `/sw.js` dan akses ke dashboard serta URL API berasal dari origin yang sama.
+
+## Akun Seeder untuk Pengujian
+
+Seeder `database/seeders/UserSeeder.php` menyediakan akun berikut:
+
+- Admin Jalan
+  - email: `admin.jalan@sigap.id`
+  - username: `admin_jalan`
+  - password: `AdminJalan123!`
+- Masyarakat
+  - email: `budi.test@sigap.id`
+  - username: `user_test`
+  - password: `UserTest123!`
 
 ## Skrip Composer & NPM
 
@@ -81,18 +88,18 @@ Akun berikut disediakan di `database/seeders/UserSeeder.php`:
 
 ## Rute Utama
 
-- `/` : halaman login
-- `admin-universal/beranda` : dashboard admin pusat
-- `admin-universal/bidang` : manajemen bidang
-- `admin-universal/pengguna` : manajemen pengguna
-- `admin-universal/laporan` : daftar laporan pusat
-- `admin-universal/statistik` : statistik sistem
-- `admin-bidang/beranda` : dashboard admin bidang
-- `admin-bidang/laporan` : daftar laporan bidang
+- `/` : halaman landing
+- `/login` : login dashboard Admin Jalan
+- `/admin-jalan/beranda` : dashboard Admin Jalan
+- `/admin-jalan/laporan` : daftar laporan
+- `/api/auth/*` : autentikasi aplikasi mobile
+- `/api/laporan` : membuat dan melihat riwayat laporan
+- `/api/user/*` : pengelolaan profil masyarakat
 
 ## Dependensi Utama
 
 - `laravel/framework` ^12.0
+- `laravel-notification-channels/webpush` ^13.0
 - `barryvdh/laravel-dompdf` ^3.1
 - `laravel/sanctum` ^4.3
 - `laravel/tinker` ^2.10.1

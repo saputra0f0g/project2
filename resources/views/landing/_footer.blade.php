@@ -10,19 +10,13 @@
             {{-- ── Brand & Tagline ── --}}
             <div class="lg:col-span-2">
                 {{-- Logo + app name --}}
-                <div class="flex items-center gap-4 mb-5">
-                    <img src="{{ asset('gambar/puprlogo.png') }}"
-                         alt="Logo PUPR"
-                         class="h-12 w-12 object-contain flex-shrink-0">
-                    <div>
-                        <p class="font-black text-2xl leading-none">SIGAP</p>
-                        <p class="text-xs font-semibold tracking-wide mt-0.5" style="color:#93c5fd;">
-                            Sistem Informasi Geografis & Pengaduan Publik
-                        </p>
-                    </div>
+                <div class="flex items-center gap-4 mb-1">
+                    <img src="{{ asset('gambar/subang-ngabret1.png') }}"
+                         alt="Logo Subang Ngabret"
+                         class="h-16 w-36 object-contain flex-shrink-0">
                 </div>
 
-                <p class="text-sm leading-relaxed mb-6 max-w-sm font-medium" style="color:#bfdbfe;">
+                <p class="text-sm leading-relaxed mb-1 max-w-sm font-medium" style="color:#bfdbfe;">
                     Platform pelaporan infrastruktur digital resmi Dinas PUPR Kabupaten Subang.
                     Bersama kita wujudkan Subang yang lebih baik, satu laporan per langkah.
                 </p>
@@ -30,10 +24,9 @@
                 {{-- Social links --}}
                 <div class="flex gap-3">
                     @foreach([
-                        ['fab fa-instagram', '#'],
-                        ['fab fa-facebook',  '#'],
-                        ['fab fa-youtube',   '#'],
-                        ['fab fa-whatsapp',  '#'],
+                        ['fab fa-instagram', 'https://www.instagram.com/dinas.pupr.subang/'],
+                        ['fab fa-facebook',  'https://www.facebook.com/dinas.pupr.subang/'],
+                        ['fab fa-whatsapp',  'https://wa.me/6285221089204'],
                     ] as [$icon, $href])
                     <a href="{{ $href }}"
                        class="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 hover:-translate-y-0.5"
@@ -66,11 +59,11 @@
                     </li>
                     <li class="flex gap-3 items-center">
                         <i class="fas fa-envelope flex-shrink-0" style="color:#F59E0B"></i>
-                        <a href="mailto:sigap@puprsubang.go.id"
+                        <a href="mailto:dispupr@gmail.com"
                            class="transition-colors break-all"
                            style="color:#bfdbfe;"
                            onmouseover="this.style.color='white';"
-                           onmouseout="this.style.color='#bfdbfe';">sigap@puprsubang.go.id</a>
+                           onmouseout="this.style.color='#bfdbfe';">dispupr@gmail.com</a>
                     </li>
                     <li class="flex gap-3 items-center">
                         <i class="fas fa-clock flex-shrink-0" style="color:#F59E0B"></i>

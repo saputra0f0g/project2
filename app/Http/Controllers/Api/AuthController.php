@@ -10,91 +10,96 @@ use Illuminate\Support\Facades\Hash;
 class AuthController extends Controller
 {
     /**
-     * Register — hanya untuk masyarakat (self-register).
-     * Pegawai/Admin dibuat oleh admin_universal via web dashboard.
+     * Register — hanya untuk Masyarakat (self-register via mobile app).
+     * Admin Jalan dibuat langsung di database / dashboard oleh superadmin.
      */
     public function register(Request $request)
     {
         $request->validate([
-            'name'                  => 'required|string|max:255',
-            'email'                 => 'required|email|unique:users,email',
-            'username'              => 'required|string|min:3|max:50|unique:users,username',
-            'phone'                 => 'nullable|string|max:20',
-            'password'              => 'required|min:8|confirmed',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'username' => 'required|string|min:3|max:50|unique:users,username',
+            'phone' => 'nullable|string|max:20',
+            'password' => 'required|min:8|confirmed',
         ], [
-            'name.required'                => 'Nama lengkap wajib diisi.',
-            'name.max'                     => 'Nama lengkap maksimal 255 karakter.',
-            'email.required'               => 'Alamat email wajib diisi.',
-            'email.email'                  => 'Format email tidak valid.',
-            'email.unique'                 => 'Email ini sudah terdaftar. Gunakan email lain atau login.',
-            'username.required'            => 'Username wajib diisi.',
-            'username.min'                 => 'Username minimal 3 karakter.',
-            'username.max'                 => 'Username maksimal 50 karakter.',
-            'username.unique'              => 'Username ini sudah dipakai. Coba username lain.',
-            'phone.max'                    => 'Nomor HP maksimal 20 digit.',
-            'password.required'            => 'Kata sandi wajib diisi.',
-            'password.min'                 => 'Kata sandi minimal 8 karakter.',
-            'password.confirmed'           => 'Konfirmasi kata sandi tidak cocok.',
+            'name.required' => 'Nama lengkap wajib diisi.',
+            'name.max' => 'Nama lengkap maksimal 255 karakter.',
+            'email.required' => 'Alamat email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'email.unique' => 'Email ini sudah terdaftar. Silakan login.',
+            'username.required' => 'Username wajib diisi.',
+            'username.min' => 'Username minimal 3 karakter.',
+            'username.max' => 'Username maksimal 50 karakter.',
+            'username.unique' => 'Username ini sudah dipakai. Coba username lain.',
+            'phone.max' => 'Nomor HP maksimal 20 digit.',
+            'password.required' => 'Kata sandi wajib diisi.',
+            'password.min' => 'Kata sandi minimal 8 karakter.',
+            'password.confirmed' => 'Konfirmasi kata sandi tidak cocok.',
         ]);
 
         $user = User::create([
             'nama_lengkap' => $request->name,
-            'username'     => $request->username,
-            'email'        => $request->email,
-            'nomor_hp'     => $request->phone,
-            'password'     => Hash::make($request->password),
-            'peran'        => 'masyarakat',
-            'status_akun'  => 'aktif',
+            'username' => $request->username,
+            'email' => $request->email,
+            'nomor_hp' => $request->phone,
+            'password' => Hash::make($request->password),
+            'peran' => 'masyarakat', // selalu masyarakat saat register
+            'status_akun' => 'aktif',
         ]);
 
         $token = $user->createToken('sigap_mobile')->plainTextToken;
 
         return response()->json([
-            'message' => 'Registrasi berhasil.',
-            'user'    => $this->formatUser($user),
-            'token'   => $token,
+            'message' => 'Registrasi berhasil. Selamat datang di SIGAP!',
+            'user' => $this->formatUser($user),
+            'token' => $token,
         ], 201);
     }
 
     /**
-     * Login — mendukung login via email atau username.
+     * Login mobile — hanya akun masyarakat yang dapat memperoleh token aplikasi.
      */
     public function login(Request $request)
     {
         $request->validate([
-            'email'    => 'required|string',
+            'email' => 'required|string',
             'password' => 'required|string',
         ], [
-            'email.required'    => 'Email atau username wajib diisi.',
+            'email.required' => 'Email atau username wajib diisi.',
             'password.required' => 'Kata sandi wajib diisi.',
         ]);
 
-        // Coba login via email dulu, fallback ke username
+        // Coba login via email, fallback ke username
         $user = User::where('email', $request->email)
-                    ->orWhere('username', $request->email)
-                    ->first();
+            ->orWhere('username', $request->email)
+            ->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             return response()->json([
-                'message' => 'Email/username atau password salah.',
+                'message' => 'ID atau kata sandi salah.',
             ], 401);
         }
 
         if ($user->status_akun === 'non-aktif') {
             return response()->json([
-                'message' => 'Akun Anda dinonaktifkan. Hubungi admin.',
+                'message' => 'Akun Anda dinonaktifkan. Hubungi Admin Jalan.',
             ], 403);
         }
 
-        // Hapus token lama, buat yang baru
+        if ($user->peran !== 'masyarakat') {
+            return response()->json([
+                'message' => 'Aplikasi mobile hanya dapat digunakan oleh masyarakat.',
+            ], 403);
+        }
+
+        // Hapus token lama & buat baru
         $user->tokens()->delete();
         $token = $user->createToken('sigap_mobile')->plainTextToken;
 
-        // Update waktu login terakhir
         $user->update(['terakhir_login' => now()]);
 
         return response()->json([
-            'user'  => $this->formatUser($user),
+            'user' => $this->formatUser($user),
             'token' => $token,
         ]);
     }
@@ -105,6 +110,7 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
+
         return response()->json(['message' => 'Logout berhasil.']);
     }
 
@@ -116,127 +122,21 @@ class AuthController extends Controller
         return response()->json($this->formatUser($request->user()));
     }
 
-    /**
-     * Kirim OTP ke email untuk reset password.
-     */
-    public function forgotPassword(Request $request)
-    {
-        $request->validate(
-            ['email' => 'required|email|exists:users,email'],
-            [
-                'email.required' => 'Alamat email wajib diisi.',
-                'email.email'    => 'Format email tidak valid.',
-                'email.exists'   => 'Email tidak terdaftar di sistem. Periksa kembali.',
-            ]
-        );
+    // ─── HELPER ───────────────────────────────────────────────────────────────
 
-        $otp  = rand(100000, 999999);
-        $user = User::where('email', $request->email)->first();
-
-        $user->update([
-            'otp_code'       => $otp,
-            'otp_expires_at' => now()->addMinutes(10),
-        ]);
-
-        // TODO: kirim email dengan Mail::to($user->email)->send(new OtpMail($otp));
-        // Untuk sementara, OTP bisa dilihat di log: storage/logs/laravel.log
-        \Log::info("OTP untuk {$user->email}: {$otp}");
-
-        return response()->json(['message' => 'Kode OTP telah dikirim ke email.']);
-    }
-
-    /**
-     * Verifikasi kode OTP.
-     */
-    public function verifyOtp(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'code'  => 'required|string',
-        ], [
-            'email.required' => 'Email wajib diisi.',
-            'email.email'    => 'Format email tidak valid.',
-            'code.required'  => 'Kode OTP wajib diisi.',
-        ]);
-
-        $user = User::where('email', $request->email)
-                    ->where('otp_code', $request->code)
-                    ->where('otp_expires_at', '>', now())
-                    ->first();
-
-        if (!$user) {
-            return response()->json([
-                'message' => 'Kode OTP tidak valid atau sudah kedaluwarsa.',
-            ], 422);
-        }
-
-        return response()->json(['message' => 'Kode valid.', 'verified' => true]);
-    }
-
-    /**
-     * Reset password dengan kode OTP.
-     */
-    public function resetPassword(Request $request)
-    {
-        $request->validate([
-            'email'    => 'required|email',
-            'code'     => 'required|string',
-            'password' => 'required|min:8|confirmed',
-        ], [
-            'email.required'    => 'Email wajib diisi.',
-            'email.email'       => 'Format email tidak valid.',
-            'code.required'     => 'Kode OTP wajib diisi.',
-            'password.required' => 'Kata sandi baru wajib diisi.',
-            'password.min'      => 'Kata sandi baru minimal 8 karakter.',
-            'password.confirmed'=> 'Konfirmasi kata sandi tidak cocok.',
-        ]);
-
-        $user = User::where('email', $request->email)
-                    ->where('otp_code', $request->code)
-                    ->where('otp_expires_at', '>', now())
-                    ->first();
-
-        if (!$user) {
-            return response()->json([
-                'message' => 'Token tidak valid atau kedaluwarsa.',
-            ], 422);
-        }
-
-        $user->update([
-            'password'       => Hash::make($request->password),
-            'otp_code'       => null,
-            'otp_expires_at' => null,
-        ]);
-
-        return response()->json(['message' => 'Password berhasil direset. Silakan login.']);
-    }
-
-    // ─── HELPER: Format user untuk response mobile ────────────────────────────
     private function formatUser(User $user): array
     {
         return [
-            'id'        => $user->id,
-            'name'      => $user->nama_lengkap,
-            'username'  => $user->username,
-            'email'     => $user->email,
-            'phone'     => $user->nomor_hp,
-            'role'      => $this->mapPeran($user->peran), // 'masyarakat' | 'pegawai'
-            'foto_url'  => $user->foto_profil
-                           ? asset('storage/' . $user->foto_profil)
+            'id' => $user->id,
+            'name' => $user->nama_lengkap,
+            'username' => $user->username,
+            'email' => $user->email,
+            'phone' => $user->nomor_hp,
+            'role' => $user->peran, // 'masyarakat' | 'admin_jalan'
+            'foto_url' => $user->foto_profil
+                           ? asset('storage/'.$user->foto_profil)
                            : null,
-            'bidang_id' => $user->id_bidang,
+            'status' => $user->status_akun,
         ];
-    }
-
-    // Map peran DB → role mobile
-    private function mapPeran(string $peran): string
-    {
-        return match ($peran) {
-            'masyarakat'    => 'masyarakat',
-            'pekerja_bidang'=> 'pegawai',
-            'admin_bidang'  => 'pegawai',
-            'admin_universal' => 'pegawai',
-            default         => 'masyarakat',
-        };
     }
 }

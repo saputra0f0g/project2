@@ -7,58 +7,80 @@ use Illuminate\Support\Facades\Auth;
 
 class AutentikasiController extends Controller
 {
-    // Menampilkan halaman login (welcome.blade.php)
+    /**
+     * Tampilkan halaman login dashboard.
+     */
     public function tampilLogin()
     {
+        if (Auth::check() && Auth::user()->peran === 'admin_jalan') {
+            return redirect()->route('admin_jalan.beranda');
+        }
+
         return view('welcome');
     }
 
-    // Proses Autentikasi
+    /**
+     * Proses login dashboard — hanya untuk Admin Jalan.
+     * Masyarakat login via mobile app, bukan dashboard web.
+     */
     public function prosesLogin(Request $request)
     {
-        $kredensial = $request->validate([
+        $request->validate([
             'username' => 'required',
-            'password' => 'required'
+            'password' => 'required',
+        ], [
+            'username.required' => 'Username wajib diisi.',
+            'password.required' => 'Password wajib diisi.',
         ]);
 
-        if (Auth::attempt($kredensial)) {
+        $kredensial = [
+            'username' => $request->username,
+            'password' => $request->password,
+        ];
+
+        if (Auth::attempt($kredensial, $request->boolean('ingat'))) {
             $request->session()->regenerate();
             $user = Auth::user();
 
-            // Cek status akun
+            // Cek status akun aktif
             if ($user->status_akun !== 'aktif') {
                 Auth::logout();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
-                return back()->with('error', 'Akun Anda dinonaktifkan atau belum aktif. Hubungi admin.');
+                return back()->withInput()->with('error', 'Akun Anda dinonaktifkan. Hubungi administrator sistem.');
             }
 
-            // Pengalihan berdasarkan Peran (Role) sesuai SRS
-            if ($user->peran == 'admin_universal') {
-                return redirect()->route('admin_universal.beranda')->with('sukses', 'Selamat datang, Admin Universal ' . $user->nama_lengkap . '!');
-            } elseif ($user->peran == 'admin_bidang') {
-                return redirect()->route('admin_bidang.beranda')->with('sukses', 'Selamat datang, Admin Bidang ' . $user->nama_lengkap . '!');
-            } elseif ($user->peran == 'pekerja_bidang') {
-                return redirect()->route('pekerja.beranda')->with('sukses', 'Selamat datang, Pekerja ' . $user->nama_lengkap . '!');
-            } elseif ($user->peran == 'masyarakat') {
+            // Hanya Admin Jalan yang boleh masuk ke dashboard web
+            if ($user->peran === 'admin_jalan') {
+                return redirect()
+                    ->route('admin_jalan.beranda')
+                    ->with('sukses', 'Selamat datang, ' . $user->nama_lengkap . '!');
+            }
+
+            // Masyarakat → tolak akses ke dashboard
+            if ($user->peran === 'masyarakat') {
                 Auth::logout();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
-                return back()->with('error', 'Akun masyarakat hanya dapat digunakan melalui aplikasi mobile (Sigap Mobile).');
+                return back()->withInput()->with('error', 'Akun masyarakat hanya dapat digunakan melalui aplikasi mobile SIGAP.');
             }
 
-            return redirect()->intended('/');
+            // Peran tidak dikenal
+            Auth::logout();
+            return back()->withInput()->with('error', 'Akun Anda tidak memiliki akses ke dashboard ini.');
         }
 
-        return back()->with('error', 'Nama Pengguna atau Kata Sandi salah!');
+        return back()->withInput()->with('error', 'Username atau Password salah!');
     }
 
-    // Logout
+    /**
+     * Logout dari dashboard.
+     */
     public function logout(Request $request)
     {
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect()->route('login');
+        return redirect()->route('login')->with('sukses', 'Anda berhasil logout.');
     }
 }
